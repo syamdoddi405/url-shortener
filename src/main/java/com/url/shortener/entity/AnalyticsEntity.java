@@ -2,12 +2,24 @@ package com.url.shortener.entity;
 
 import java.time.LocalDateTime;
 
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+/**
+ * JPA Entity for Analytics.
+ * Represents the analytics table in the database.
+ * Separated from DTO to follow Single Responsibility Principle.
+ */
+@Entity
+@Table(name = "analytics")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -15,6 +27,8 @@ import lombok.Setter;
 @Builder
 public class AnalyticsEntity {
 
+	@Id
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Long id;
 
 	private String shortCode;
