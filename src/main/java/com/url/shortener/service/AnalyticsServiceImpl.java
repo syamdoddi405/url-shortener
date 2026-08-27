@@ -13,6 +13,7 @@ import com.url.shortener.mapper.AnalyticsMapper;
 import com.url.shortener.repository.AnalyticsRepository;
 import com.url.shortener.repository.UrlRepository;
 import com.url.shortener.service.cache.CacheService;
+import com.url.shortener.service.kafka.KafkaAnalyticsProducer;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -20,6 +21,7 @@ import lombok.extern.slf4j.Slf4j;
 /**
  * Service implementation for analytics operations.
  * Handles analytics data persistence and retrieval.
+ * Uses Kafka for asynchronous analytics event processing.
  * Uses proper transaction management and logging.
  * Follows the Single Responsibility Principle.
  */
@@ -32,6 +34,7 @@ public class AnalyticsServiceImpl implements AnalyticsService {
     private final UrlRepository urlRepository;
     private final AnalyticsMapper analyticsMapper;
     private final CacheService cacheService;
+    private final KafkaAnalyticsProducer kafkaAnalyticsProducer;
 
     @Override
     @Transactional(readOnly = true)
@@ -64,7 +67,7 @@ public class AnalyticsServiceImpl implements AnalyticsService {
         log.debug("Saving analytics for short code: {}", shortCode);
         
         try {
-        	AnalyticsDTO analytics = analyticsRepository.findByShortCode(shortCode)
+            AnalyticsDTO analytics = analyticsRepository.findByShortCode(shortCode)
                     .orElseGet(() -> {
                         log.debug("Creating new analytics record for short code: {}", shortCode);
                         return AnalyticsDTO.builder()
@@ -73,23 +76,31 @@ public class AnalyticsServiceImpl implements AnalyticsService {
                                 .createdAt(LocalDateTime.now())
                                 .build();
                     });
-        	if(analytics.getId() !=null) {
-        		analytics.setId(analytics.getId());
-        	}
+            
+            if (analytics.getId() != null) {
+                analytics.setId(analytics.getId());
+            }
+            
             analytics.setTotalClicks(analytics.getTotalClicks() + 1);
             analytics.setLastAccessed(LocalDateTime.now());
             analytics.setLastReferrer(referrer);
             analytics.setLastUserAgent(userAgent);
+            
             var cachedUrl = cacheService.get(shortCode);
             if (cachedUrl.isPresent()) {
                 log.debug("Retrieved URL from cache for short code: {}", shortCode);
                 analytics.setOriginalUrl(cachedUrl.get());
             }
 
-            
+            // Save analytics to database
             analyticsRepository.save(analytics);
             log.debug("Analytics saved successfully for short code: {} (total clicks: {})", 
                     shortCode, analytics.getTotalClicks());
+            
+            // Send analytics event to Kafka for asynchronous processing
+            kafkaAnalyticsProducer.sendAnalyticsEvent(analytics);
+            log.debug("Analytics event sent to Kafka for short code: {}", shortCode);
+            
         } catch (Exception e) {
             log.error("Error saving analytics for short code: {}", shortCode, e);
             throw new RuntimeException("Failed to save analytics data", e);
