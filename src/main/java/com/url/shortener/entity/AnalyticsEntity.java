@@ -13,31 +13,40 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 /**
- * JPA Entity representing a shortened URL mapping.
+ * JPA Entity representing analytics data for shortened URLs.
  * Separated from DTO to follow Single Responsibility Principle.
  */
 @Entity
-@Table(name = "urls")
+@Table(name = "analytics")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class UrlEntity {
-    
+public class AnalyticsEntity {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String originalUrl;
-    
     private String shortCode;
-    
+
+    private String originalUrl;
+
+    private long totalClicks;
+
     private LocalDateTime createdAt;
+
+    private LocalDateTime lastAccessed;
+
+    private String lastReferrer;
+
+    private String lastUserAgent;
 
     @Override
     public String toString() {
-        return "UrlEntity [id=" + id + ", originalUrl=" + originalUrl + ", shortCode=" + shortCode
-                + ", createdAt=" + createdAt + "]";
+        return "AnalyticsEntity [id=" + id + ", shortCode=" + shortCode + ", originalUrl=" + originalUrl
+                + ", totalClicks=" + totalClicks + ", createdAt=" + createdAt + ", lastAccessed="
+                + lastAccessed + ", lastReferrer=" + lastReferrer + ", lastUserAgent=" + lastUserAgent + "]";
     }
 }
