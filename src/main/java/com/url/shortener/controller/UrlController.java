@@ -2,13 +2,21 @@ package com.url.shortener.controller;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-import com.url.shortener.dto.UrlDTO;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
 import com.url.shortener.dto.AnalyticsDTO;
-import com.url.shortener.service.UrlService;
-import com.url.shortener.service.AnalyticsService;
-import com.url.shortener.service.context.RequestContext;
+import com.url.shortener.entity.AnalyticsEntity;
+import com.url.shortener.entity.UrlEntity;
 import com.url.shortener.exceptions.UrlNotFoundException;
+import com.url.shortener.service.AnalyticsService;
+import com.url.shortener.service.UrlService;
+import com.url.shortener.service.context.RequestContext;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -38,11 +46,11 @@ public class UrlController {
      * @throws IllegalArgumentException if URL is invalid
      */
     @PostMapping("/shorten")
-    public ResponseEntity<UrlDTO> shortenUrl(@RequestBody ShortenUrlRequest request) {
+    public ResponseEntity<UrlEntity> shortenUrl(@RequestBody ShortenUrlRequest request) {
         log.info("Received request to shorten URL from IP: {}", requestContext.getClientIp());
         
         try {
-            UrlDTO result = urlService.shortenUrl(request.getOriginalUrl());
+        	UrlEntity result = urlService.shortenUrl(request.getOriginalUrl());
             log.info("Successfully shortened URL. Short code: {}", result.getShortCode());
             return ResponseEntity.status(HttpStatus.CREATED).body(result);
         } catch (IllegalArgumentException e) {
@@ -95,12 +103,12 @@ public class UrlController {
      * @throws UrlNotFoundException if short code not found
      */
     @GetMapping("/{shortCode}/stats")
-    public ResponseEntity<AnalyticsDTO> getStats(@PathVariable String shortCode) {
+    public ResponseEntity<AnalyticsEntity> getStats(@PathVariable String shortCode) {
         log.debug("Received request for analytics of short code: {} from IP: {}", 
                 shortCode, requestContext.getClientIp());
         
         try {
-            AnalyticsDTO stats = analyticsService.getStats(shortCode);
+        	AnalyticsEntity stats = analyticsService.getStats(shortCode);
             log.info("Successfully retrieved analytics for short code: {}", shortCode);
             return ResponseEntity.ok(stats);
         } catch (UrlNotFoundException e) {

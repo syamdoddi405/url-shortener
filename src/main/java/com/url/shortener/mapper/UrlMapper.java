@@ -18,11 +18,11 @@ public class UrlMapper {
      * @param entity the JPA entity
      * @return the data transfer object
      */
-    public UrlDTO toDTO(UrlEntity entity) {
+    public UrlEntity toDTO(UrlDTO entity) {
         if (entity == null) {
             return null;
         }
-        return UrlDTO.builder()
+        return UrlEntity.builder()
                 .id(entity.getId())
                 .originalUrl(entity.getOriginalUrl())
                 .shortCode(entity.getShortCode())

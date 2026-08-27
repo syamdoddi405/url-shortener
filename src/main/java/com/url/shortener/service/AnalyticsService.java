@@ -1,6 +1,6 @@
 package com.url.shortener.service;
 
-import com.url.shortener.dto.AnalyticsDTO;
+import com.url.shortener.entity.AnalyticsEntity;
 
 /**
  * Service interface for analytics operations.
@@ -13,10 +13,10 @@ public interface AnalyticsService {
      * Retrieves analytics statistics for a given short code.
      *
      * @param shortCode the short code
-     * @return AnalyticsDTO containing the statistics
+     * @return AnalyticsEntity containing the statistics
      * @throws com.url.shortener.exceptions.UrlNotFoundException if short code not found
      */
-    AnalyticsDTO getStats(String shortCode);
+    AnalyticsEntity getStats(String shortCode);
 
     /**
      * Saves or updates analytics data for a URL access.

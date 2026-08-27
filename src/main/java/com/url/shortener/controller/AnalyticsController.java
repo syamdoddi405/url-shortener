@@ -6,11 +6,13 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import com.url.shortener.dto.AnalyticsDTO;
+
+import com.url.shortener.entity.AnalyticsEntity;
+import com.url.shortener.exceptions.UrlNotFoundException;
 import com.url.shortener.service.AnalyticsService;
 import com.url.shortener.service.UrlService;
 import com.url.shortener.service.context.RequestContext;
-import com.url.shortener.exceptions.UrlNotFoundException;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -40,12 +42,12 @@ public class AnalyticsController {
      * @throws UrlNotFoundException if short code not found
      */
     @GetMapping("/{shortCode}")
-    public ResponseEntity<AnalyticsDTO> getStats(@PathVariable String shortCode) {
+    public ResponseEntity<AnalyticsEntity> getStats(@PathVariable String shortCode) {
         log.debug("Received request for analytics of short code: {} from IP: {}", 
                 shortCode, requestContext.getClientIp());
         
         try {
-            AnalyticsDTO stats = analyticsService.getStats(shortCode);
+        	AnalyticsEntity stats = analyticsService.getStats(shortCode);
             log.info("Successfully retrieved analytics for short code: {}", shortCode);
             return ResponseEntity.ok(stats);
         } catch (UrlNotFoundException e) {

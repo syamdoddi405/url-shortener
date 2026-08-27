@@ -18,11 +18,11 @@ public class AnalyticsMapper {
      * @param entity the JPA entity
      * @return the data transfer object
      */
-    public AnalyticsDTO toDTO(AnalyticsEntity entity) {
+    public AnalyticsEntity toDTO(AnalyticsDTO entity) {  
         if (entity == null) {
             return null;
         }
-        return AnalyticsDTO.builder()
+        return AnalyticsEntity.builder()
                 .id(entity.getId())
                 .shortCode(entity.getShortCode())
                 .originalUrl(entity.getOriginalUrl())

@@ -1,23 +1,14 @@
 package com.url.shortener.entity;
 
 import java.time.LocalDateTime;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-/**
- * JPA Entity representing a shortened URL mapping.
- * Separated from DTO to follow Single Responsibility Principle.
- */
-@Entity
-@Table(name = "urls")
+
 @Getter
 @Setter
 @NoArgsConstructor
@@ -25,8 +16,6 @@ import lombok.Setter;
 @Builder
 public class UrlEntity {
     
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     private String originalUrl;

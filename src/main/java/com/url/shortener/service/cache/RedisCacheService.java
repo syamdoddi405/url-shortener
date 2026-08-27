@@ -47,7 +47,7 @@ public class RedisCacheService implements CacheService {
     @Override
     public void invalidate(String key) {
         try {
-            Boolean deleted = redisTemplate.delete(key);
+            Boolean deleted = redisTemplate.delete(key); 
             if (Boolean.TRUE.equals(deleted)) {
                 log.debug("Cache invalidated for key: {}", key);
             }

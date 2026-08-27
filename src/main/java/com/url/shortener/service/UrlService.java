@@ -1,6 +1,5 @@
 package com.url.shortener.service;
 
-import com.url.shortener.dto.UrlDTO;
 import com.url.shortener.entity.UrlEntity;
 
 /**
@@ -14,10 +13,10 @@ public interface UrlService {
      * Shortens a given URL.
      *
      * @param originalUrl the original URL to shorten
-     * @return UrlDTO containing the shortened URL details
+     * @return UrlEntity containing the shortened URL details
      * @throws IllegalArgumentException if URL is invalid
      */
-    UrlDTO shortenUrl(String originalUrl);
+    UrlEntity shortenUrl(String originalUrl);
 
     /**
      * Expands a shortened URL back to the original.
