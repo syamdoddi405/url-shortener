@@ -216,7 +216,7 @@ UrlService urlService = new UrlService(
 );
 
 // Shortens URL with automatic deduplication
-UrlDTO result = urlService.shortenUrl("https://github.com/example");
+UrlEntity result = urlService.shortenUrl("https://github.com/example");
 
 // Expands short code to original URL
 String originalUrl = urlService.expandUrl(result.getShortCode());
@@ -246,7 +246,7 @@ AnalyticsService analyticsService = new AnalyticsService(analyticsRepository);
 analyticsService.saveAnalytics("abc123", "google.com", "Mozilla/5.0...");
 
 // Get statistics
-AnalyticsDTO stats = analyticsService.getStats("abc123");
+AnalyticsEntity stats = analyticsService.getStats("abc123");
 // Returns: {
 //   "shortCode": "abc123",
 //   "totalClicks": 42,
@@ -590,7 +590,7 @@ public class GlobalExceptionHandler {
 @Slf4j
 public class UrlService {
     
-    public UrlDTO shortenUrl(String originalUrl) {
+    public UrlEntity shortenUrl(String originalUrl) {
         log.debug("Starting URL shortening for: {}", originalUrl);
         
         if (!isValidUrl(originalUrl)) {
@@ -601,7 +601,7 @@ public class UrlService {
         String shortCode = shortCodeGenerator.generate(originalUrl);
         log.info("Successfully created short code: {} for URL: {}", shortCode, originalUrl);
         
-        return new UrlDTO(shortCode, originalUrl);
+        return new UrlEntity(shortCode, originalUrl);
     }
 }
 ```
@@ -673,7 +673,7 @@ public String expandUrl(String shortCode) {
 @Async
 public void saveAnalytics(String shortCode, String referrer, String userAgent) {
     try {
-        Analytics analytics = new Analytics(
+        AnalyticsDTO analytics = new AnalyticsDTO(
             shortCode, referrer, userAgent, LocalDateTime.now()
         );
         analyticsRepository.save(analytics);
@@ -698,7 +698,7 @@ public String sanitizeInput(String input) {
 // Rate limiting
 @RateLimiter(limit = 100, window = 60) // 100 requests per minute
 @PostMapping("/shorten")
-public ResponseEntity<UrlDTO> shortenUrl(@RequestBody ShortenUrlRequest request) {
+public ResponseEntity<UrlEntity> shortenUrl(@RequestBody ShortenUrlRequest request) {
     // Implementation
 }
 
