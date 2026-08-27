@@ -1,51 +1,115 @@
 package com.url.shortener.controller;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-
 import com.url.shortener.dto.AnalyticsDTO;
 import com.url.shortener.service.AnalyticsService;
 import com.url.shortener.service.UrlService;
+import com.url.shortener.service.context.RequestContext;
+import com.url.shortener.exceptions.UrlNotFoundException;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
-import jakarta.servlet.http.HttpServletRequest;
-
+/**
+ * REST Controller for analytics operations.
+ * Follows the Single Responsibility Principle - handles HTTP concerns only.
+ * Delegates business logic to service layer.
+ * Uses dependency injection for loose coupling.
+ * Implements proper error handling and logging.
+ */
 @RestController
-@RequestMapping("/analytics")
+@RequestMapping("/api/analytics")
+@RequiredArgsConstructor
+@Slf4j
 public class AnalyticsController {
 
     private final AnalyticsService analyticsService;
-    
     private final UrlService urlService;
-    
-    
-    private final HttpServletRequest request;
+    private final RequestContext requestContext;
 
-
-    public AnalyticsController(AnalyticsService analyticsService, UrlService urlService, HttpServletRequest request) {
-        this.analyticsService = analyticsService;
-		this.urlService = urlService;
-		this.request = request;
-    }
-
+    /**
+     * Retrieves analytics statistics for a given short code.
+     * GET /api/analytics/{shortCode}
+     *
+     * @param shortCode the short code to retrieve analytics for
+     * @return ResponseEntity with analytics data
+     * @throws UrlNotFoundException if short code not found
+     */
     @GetMapping("/{shortCode}")
     public ResponseEntity<AnalyticsDTO> getStats(@PathVariable String shortCode) {
-        return ResponseEntity.ok(analyticsService.getStats(shortCode));
+        log.debug("Received request for analytics of short code: {} from IP: {}", 
+                shortCode, requestContext.getClientIp());
+        
+        try {
+            AnalyticsDTO stats = analyticsService.getStats(shortCode);
+            log.info("Successfully retrieved analytics for short code: {}", shortCode);
+            return ResponseEntity.ok(stats);
+        } catch (UrlNotFoundException e) {
+            log.warn("Short code not found: {}", shortCode);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        } catch (Exception e) {
+            log.error("Error retrieving analytics for short code: {}", shortCode, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
     }
-    
+
+    /**
+     * Expands a shortened URL and captures analytics data.
+     * GET /api/analytics/expand/{shortCode}
+     * 
+     * This endpoint serves as an alternative expansion endpoint that automatically
+     * captures analytics without requiring separate API calls.
+     *
+     * @param shortCode the short code to expand
+     * @return ResponseEntity with the original URL
+     * @throws UrlNotFoundException if short code not found
+     */
     @GetMapping("/expand/{shortCode}")
-    public ResponseEntity<String> expand(@PathVariable String shortCode) {
-        String originalUrl = urlService.expandUrl(shortCode);
+    public ResponseEntity<ExpandResponse> expand(@PathVariable String shortCode) {
+        log.debug("Received request to expand short code: {} from IP: {}", 
+                shortCode, requestContext.getClientIp());
+        
+        try {
+            // Expand the URL
+            String originalUrl = urlService.expandUrl(shortCode);
+            log.info("Successfully expanded short code: {}", shortCode);
 
-        // Capture analytics
-        String referrer = request.getHeader("Referer");
-        String userAgent = request.getHeader("User-Agent");
-        analyticsService.saveAnalytics(shortCode, referrer, userAgent);
+            // Capture analytics data
+            String referrer = requestContext.getReferer();
+            String userAgent = requestContext.getUserAgent();
+            analyticsService.saveAnalytics(shortCode, referrer, userAgent);
+            log.debug("Analytics captured for short code: {}", shortCode);
 
-        return ResponseEntity.ok(originalUrl);
+            return ResponseEntity.ok(new ExpandResponse(originalUrl));
+        } catch (UrlNotFoundException e) {
+            log.warn("Short code not found for expansion: {}", shortCode);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        } catch (Exception e) {
+            log.error("Error expanding short code: {}", shortCode, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
     }
 
-}
+    /**
+     * Response DTO for URL expansion.
+     */
+    public static class ExpandResponse {
+        private String originalUrl;
 
+        public ExpandResponse(String originalUrl) {
+            this.originalUrl = originalUrl;
+        }
+
+        public String getOriginalUrl() {
+            return originalUrl;
+        }
+
+        public void setOriginalUrl(String originalUrl) {
+            this.originalUrl = originalUrl;
+        }
+    }
+}
