@@ -14,41 +14,29 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 /**
- * Data Transfer Object for Analytics endpoints.
+ * Data Transfer Object for URL endpoints.
  * Separated from Entity to follow Single Responsibility Principle.
- * Used for API responses only.
+ * Used for API requests and responses.
  */
-@Entity
-@Table(name = "analytics")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class AnalyticsDTO {
-
+@Entity
+@Table(name = "urls")
+public class UrlDTO {
+    
 	@Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
-    private String shortCode;
-
     private String originalUrl;
-
-    private long totalClicks;
-
+    private String shortCode;
     private LocalDateTime createdAt;
-
-    private LocalDateTime lastAccessed;
-
-    private String lastReferrer;
-
-    private String lastUserAgent;
 
     @Override
     public String toString() {
-        return "AnalyticsEntity [id=" + id + ", shortCode=" + shortCode + ", originalUrl=" + originalUrl
-                + ", totalClicks=" + totalClicks + ", createdAt=" + createdAt + ", lastAccessed="
-                + lastAccessed + ", lastReferrer=" + lastReferrer + ", lastUserAgent=" + lastUserAgent + "]";
+        return "UrlDTO [id=" + id + ", originalUrl=" + originalUrl + ", shortCode=" + shortCode
+                + ", createdAt=" + createdAt + "]";
     }
 }
