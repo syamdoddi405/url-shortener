@@ -8,7 +8,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.url.shortener.entity.AnalyticsEntity;
+import com.url.shortener.entity.ExpandUrlResponse;
 import com.url.shortener.exceptions.UrlNotFoundException;
+import com.url.shortener.kafka.AnalyticsEventProducer;
 import com.url.shortener.service.AnalyticsService;
 import com.url.shortener.service.UrlService;
 import com.url.shortener.service.context.RequestContext;
@@ -32,6 +34,8 @@ public class AnalyticsController {
     private final AnalyticsService analyticsService;
     private final UrlService urlService;
     private final RequestContext requestContext;
+    private final AnalyticsEventProducer analyticsEventProducer;
+
 
     /**
      * Retrieves analytics statistics for a given short code.
@@ -41,7 +45,7 @@ public class AnalyticsController {
      * @return ResponseEntity with analytics data
      * @throws UrlNotFoundException if short code not found
      */
-    @GetMapping("/{shortCode}")
+    @GetMapping("/{shortCode}/stats")
     public ResponseEntity<AnalyticsEntity> getStats(@PathVariable String shortCode) {
         log.debug("Received request for analytics of short code: {} from IP: {}", 
                 shortCode, requestContext.getClientIp());
@@ -70,8 +74,8 @@ public class AnalyticsController {
      * @return ResponseEntity with the original URL
      * @throws UrlNotFoundException if short code not found
      */
-    @GetMapping("/expand/{shortCode}")
-    public ResponseEntity<ExpandResponse> expand(@PathVariable String shortCode) {
+    @GetMapping("/expand/{shortCode}/url")
+    public ResponseEntity<ExpandUrlResponse> expandUrl(@PathVariable String shortCode) {
         log.debug("Received request to expand short code: {} from IP: {}", 
                 shortCode, requestContext.getClientIp());
         
@@ -83,10 +87,16 @@ public class AnalyticsController {
             // Capture analytics data
             String referrer = requestContext.getReferer();
             String userAgent = requestContext.getUserAgent();
-            analyticsService.saveAnalytics(shortCode, referrer, userAgent);
+            String clientIp = requestContext.getClientIp();
+            analyticsEventProducer.publish(
+                    shortCode,
+                    referrer,
+                    userAgent,
+                    clientIp
+            );    
             log.debug("Analytics captured for short code: {}", shortCode);
 
-            return ResponseEntity.ok(new ExpandResponse(originalUrl));
+            return ResponseEntity.ok(new ExpandUrlResponse(originalUrl));
         } catch (UrlNotFoundException e) {
             log.warn("Short code not found for expansion: {}", shortCode);
             return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
@@ -96,22 +106,4 @@ public class AnalyticsController {
         }
     }
 
-    /**
-     * Response DTO for URL expansion.
-     */
-    public static class ExpandResponse {
-        private String originalUrl;
-
-        public ExpandResponse(String originalUrl) {
-            this.originalUrl = originalUrl;
-        }
-
-        public String getOriginalUrl() {
-            return originalUrl;
-        }
-
-        public void setOriginalUrl(String originalUrl) {
-            this.originalUrl = originalUrl;
-        }
-    }
 }

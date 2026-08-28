@@ -1,7 +1,8 @@
 package com.url.shortener.service;
 
 import java.time.LocalDateTime;
-import java.util.Optional;
+import java.util.Collections;
+import java.util.List;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -96,5 +97,20 @@ public class UrlServiceImpl implements UrlService {
         log.debug("Updated cache for short code: {}", shortCode);
 
         return originalUrl;
+    }
+    
+    @Override
+    @Transactional(readOnly = true)
+    public List<UrlEntity> getUrls() {
+
+        List<UrlDTO> urls = urlRepository.findAll();
+
+        if (urls == null || urls.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        return urls.stream()
+                .map(urlMapper::toDTO)
+                .toList();
     }
 }
