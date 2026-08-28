@@ -10,6 +10,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -233,5 +234,63 @@ class UrlServiceImplTest {
         verify(urlRepository).findByShortCode(shortCode);
 
         verify(cacheService, never()).put(any(), any());
+    }
+    
+    @Test
+    void getUrls_shouldReturnMappedUrls() {
+
+        UrlDTO url1 = UrlDTO.builder()
+                .id(1L)
+                .originalUrl("https://google.com")
+                .shortCode("abc12345")
+                .build();
+
+        UrlDTO url2 = UrlDTO.builder()
+                .id(2L)
+                .originalUrl("https://amazon.com")
+                .shortCode("xyz98765")
+                .build();
+
+        UrlEntity entity1 = UrlEntity.builder()
+                .id(1L)
+                .originalUrl("https://google.com")
+                .shortCode("abc12345")
+                .build();
+
+        UrlEntity entity2 = UrlEntity.builder()
+                .id(2L)
+                .originalUrl("https://amazon.com")
+                .shortCode("xyz98765")
+                .build();
+
+        when(urlRepository.findAll())
+                .thenReturn(List.of(url1, url2));
+
+        when(urlMapper.toDTO(url1))
+                .thenReturn(entity1);
+
+        when(urlMapper.toDTO(url2))
+                .thenReturn(entity2);
+
+        List<UrlEntity> result = urlService.getUrls();
+
+        assertNotNull(result);
+        assertEquals(2, result.size());
+
+        assertEquals(1L, result.get(0).getId());
+        assertEquals(
+                "https://google.com",
+                result.get(0).getOriginalUrl()
+        );
+
+        assertEquals(2L, result.get(1).getId());
+        assertEquals(
+                "https://amazon.com",
+                result.get(1).getOriginalUrl()
+        );
+
+        verify(urlRepository).findAll();
+        verify(urlMapper).toDTO(url1);
+        verify(urlMapper).toDTO(url2);
     }
 }

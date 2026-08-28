@@ -1,5 +1,7 @@
 package com.url.shortener.service;
 
+import java.util.List;
+
 import com.url.shortener.entity.UrlEntity;
 
 /**
@@ -26,4 +28,12 @@ public interface UrlService {
      * @throws com.url.shortener.exceptions.UrlNotFoundException if short code not found
      */
     String expandUrl(String shortCode);
+    
+    
+    /**
+     * fetch all URL details
+     *
+     * @return List<UrlEntity> containing the shortened URL details
+     */
+	List<UrlEntity> getUrls();
 }

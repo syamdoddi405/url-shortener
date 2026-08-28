@@ -18,6 +18,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import com.url.shortener.entity.AnalyticsEntity;
 import com.url.shortener.exceptions.UrlNotFoundException;
+import com.url.shortener.kafka.AnalyticsEventProducer;
 import com.url.shortener.service.AnalyticsService;
 import com.url.shortener.service.UrlService;
 import com.url.shortener.service.context.RequestContext;
@@ -35,6 +36,10 @@ class AnalyticsControllerTest {
 
     @Mock
     private RequestContext requestContext;
+    
+    @Mock
+    private AnalyticsEventProducer analyticsEventProducer;
+
 
     @BeforeEach
     void setUp() {
@@ -43,7 +48,8 @@ class AnalyticsControllerTest {
                 new AnalyticsController(
                         analyticsService,
                         urlService,
-                        requestContext
+                        requestContext,
+                        analyticsEventProducer
                 );
 
         mockMvc = MockMvcBuilders
@@ -74,7 +80,7 @@ class AnalyticsControllerTest {
                 .thenReturn(stats);
 
         mockMvc.perform(
-                get("/api/analytics/{shortCode}", shortCode)
+                get("/api/analytics/{shortCode}/stats", shortCode)
         )
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.shortCode")
@@ -106,7 +112,7 @@ class AnalyticsControllerTest {
                 );
 
         mockMvc.perform(
-                get("/api/analytics/{shortCode}", shortCode)
+                get("/api/analytics/{shortCode}/stats", shortCode)
         )
         .andExpect(status().isNotFound());
     }
@@ -126,7 +132,7 @@ class AnalyticsControllerTest {
                 );
 
         mockMvc.perform(
-                get("/api/analytics/{shortCode}", shortCode)
+                get("/api/analytics/{shortCode}/stats", shortCode)
         )
         .andExpect(status().isInternalServerError());
     }
@@ -151,7 +157,7 @@ class AnalyticsControllerTest {
                 .thenReturn(originalUrl);
 
         mockMvc.perform(
-                get("/api/analytics/expand/{shortCode}", shortCode)
+                get("/api/analytics/expand/{shortCode}/url", shortCode)
         )
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.originalUrl")
@@ -159,12 +165,13 @@ class AnalyticsControllerTest {
 
         verify(urlService).expandUrl(shortCode);
 
-        verify(analyticsService)
-                .saveAnalytics(
-                        shortCode,
-                        "https://google.com",
-                        "Mozilla/5.0"
-                );
+        verify(analyticsEventProducer)
+        .publish(
+                shortCode,
+                "https://google.com",
+                "Mozilla/5.0",
+                "127.0.0.1"
+        );
     }
 
     @Test
@@ -184,7 +191,7 @@ class AnalyticsControllerTest {
                 );
 
         mockMvc.perform(
-                get("/api/analytics/expand/{shortCode}", shortCode)
+                get("/api/analytics/expand/{shortCode}/url", shortCode)
         )
         .andExpect(status().isNotFound());
 
@@ -211,7 +218,7 @@ class AnalyticsControllerTest {
                 );
 
         mockMvc.perform(
-                get("/api/analytics/expand/{shortCode}", shortCode)
+                get("/api/analytics/expand/{shortCode}/url", shortCode)
         )
         .andExpect(status().isInternalServerError());
     }
