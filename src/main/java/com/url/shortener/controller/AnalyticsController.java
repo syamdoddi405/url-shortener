@@ -15,6 +15,11 @@ import com.url.shortener.service.AnalyticsService;
 import com.url.shortener.service.UrlService;
 import com.url.shortener.service.context.RequestContext;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -25,6 +30,10 @@ import lombok.extern.slf4j.Slf4j;
  * Uses dependency injection for loose coupling.
  * Implements proper error handling and logging.
  */
+@Tag(
+	    name = "Analytics",
+	    description = "URL analytics and expansion APIs"
+	)
 @RestController
 @RequestMapping("/api/analytics")
 @RequiredArgsConstructor
@@ -45,8 +54,30 @@ public class AnalyticsController {
      * @return ResponseEntity with analytics data
      * @throws UrlNotFoundException if short code not found
      */
+    @Operation(
+    	    summary = "Get URL statistics",
+    	    description = "Returns click and access statistics for a shortened URL."
+    	)
+    	@ApiResponses({
+    	    @ApiResponse(
+    	        responseCode = "200",
+    	        description = "Analytics successfully retrieved"
+    	    ),
+    	    @ApiResponse(
+    	        responseCode = "404",
+    	        description = "Short code not found"
+    	    ),
+    	    @ApiResponse(
+    	        responseCode = "500",
+    	        description = "Internal server error"
+    	    )
+    	})
     @GetMapping("/{shortCode}/stats")
-    public ResponseEntity<AnalyticsEntity> getStats(@PathVariable String shortCode) {
+    public ResponseEntity<AnalyticsEntity> getStats( @Parameter(
+            description = "Short code of the URL",
+            example = "abc12345",
+            required = true
+        )@PathVariable String shortCode) {
         log.debug("Received request for analytics of short code: {} from IP: {}", 
                 shortCode, requestContext.getClientIp());
         
@@ -74,8 +105,35 @@ public class AnalyticsController {
      * @return ResponseEntity with the original URL
      * @throws UrlNotFoundException if short code not found
      */
-    @GetMapping("/expand/{shortCode}/url")
-    public ResponseEntity<ExpandUrlResponse> expandUrl(@PathVariable String shortCode) {
+    @Operation(
+    	    summary = "Expand shortened URL",
+    	    description = """
+    	        Expands a short code into the original URL and
+    	        publishes an analytics event to Kafka.
+    	        """
+    	)
+    	@ApiResponses({
+    	    @ApiResponse(
+    	        responseCode = "200",
+    	        description = "URL successfully expanded"
+    	    ),
+    	    @ApiResponse(
+    	        responseCode = "404",
+    	        description = "Short code not found"
+    	    ),
+    	    @ApiResponse(
+    	        responseCode = "500",
+    	        description = "Internal server error"
+    	    )
+    	})
+    	@GetMapping("/expand/{shortCode}/url")
+    	public ResponseEntity<ExpandUrlResponse> expandUrl(
+    	        @Parameter(
+    	            description = "Short code of the URL",
+    	            example = "abc12345",
+    	            required = true
+    	        )
+    	        @PathVariable String shortCode) {
         log.debug("Received request to expand short code: {} from IP: {}", 
                 shortCode, requestContext.getClientIp());
         
