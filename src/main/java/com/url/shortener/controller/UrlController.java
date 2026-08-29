@@ -15,6 +15,12 @@ import com.url.shortener.entity.UrlEntity;
 import com.url.shortener.service.UrlService;
 import com.url.shortener.service.context.RequestContext;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -25,6 +31,10 @@ import lombok.extern.slf4j.Slf4j;
  * Uses dependency injection for loose coupling.
  * Implements proper error handling and logging.
  */
+@Tag(
+	    name = "URL Management",
+	    description = "APIs for creating and retrieving shortened URLs"
+	)
 @RestController
 @RequestMapping("/api/urls")
 @RequiredArgsConstructor
@@ -42,6 +52,27 @@ public class UrlController {
      * @return ResponseEntity with shortened URL details
      * @throws IllegalArgumentException if URL is invalid
      */
+    @Operation(
+    	    summary = "Shorten a URL",
+    	    description = "Creates a short code for the supplied original URL."
+    	)
+    	@ApiResponses({
+    	    @ApiResponse(
+    	        responseCode = "201",
+    	        description = "URL successfully shortened",
+    	        content = @Content(
+    	            schema = @Schema(implementation = UrlEntity.class)
+    	        )
+    	    ),
+    	    @ApiResponse(
+    	        responseCode = "400",
+    	        description = "Invalid URL"
+    	    ),
+    	    @ApiResponse(
+    	        responseCode = "500",
+    	        description = "Internal server error"
+    	    )
+    	})
     @PostMapping("/shorten")
     public ResponseEntity<UrlEntity> shortenUrl(@RequestBody ShortenUrlRequest request) {
         log.info("Received request to shorten URL from IP: {}", requestContext.getClientIp());
@@ -67,6 +98,20 @@ public class UrlController {
      * @param shortCode the short code
      * @return ResponseEntity with analytics data
      */
+    @Operation(
+    	    summary = "Retrieve all URLs",
+    	    description = "Returns all shortened URLs stored in the system."
+    	)
+    	@ApiResponses({
+    	    @ApiResponse(
+    	        responseCode = "200",
+    	        description = "URLs successfully retrieved"
+    	    ),
+    	    @ApiResponse(
+    	        responseCode = "500",
+    	        description = "Internal server error"
+    	    )
+    	})
     @GetMapping("/")
     public ResponseEntity<List<UrlEntity>> getUrls() {
         log.debug("Fetch all urls details from IP: {}", 
