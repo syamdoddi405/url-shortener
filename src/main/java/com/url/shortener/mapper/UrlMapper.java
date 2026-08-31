@@ -15,24 +15,6 @@ public class UrlMapper {
     /**
      * Converts UrlEntity to UrlDTO.
      *
-     * @param entity the JPA entity
-     * @return the data transfer object
-     */
-    public UrlEntity toDTO(UrlDTO entity) {
-        if (entity == null) {
-            return null;
-        }
-        return UrlEntity.builder()
-                .id(entity.getId())
-                .originalUrl(entity.getOriginalUrl())
-                .shortCode(entity.getShortCode())
-                .createdAt(entity.getCreatedAt())
-                .build();
-    }
-
-    /**
-     * Converts UrlDTO to UrlEntity.
-     *
      * @param dto the data transfer object
      * @return the JPA entity
      */

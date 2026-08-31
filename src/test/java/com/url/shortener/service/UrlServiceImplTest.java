@@ -82,7 +82,7 @@ class UrlServiceImplTest {
         when(urlRepository.save(any(UrlDTO.class)))
                 .thenReturn(urlDTO);
 
-        when(urlMapper.toDTO(urlDTO))
+        when(urlMapper.toEntity(urlDTO))
                 .thenReturn(urlEntity);
 
         UrlEntity result = urlService.shortenUrl(originalUrl);
@@ -95,7 +95,7 @@ class UrlServiceImplTest {
         verify(urlRepository).findByShortCode(shortCode);
         verify(urlRepository).save(any(UrlDTO.class));
         verify(cacheService).put(shortCode, originalUrl);
-        verify(urlMapper).toDTO(urlDTO);
+        verify(urlMapper).toEntity(urlDTO);
     }
 
     @Test
@@ -117,7 +117,7 @@ class UrlServiceImplTest {
         when(urlRepository.save(any(UrlDTO.class)))
                 .thenReturn(urlDTO);
 
-        when(urlMapper.toDTO(urlDTO))
+        when(urlMapper.toEntity(urlDTO))
                 .thenReturn(urlEntity);
 
         UrlEntity result = urlService.shortenUrl(originalUrl);
@@ -266,10 +266,10 @@ class UrlServiceImplTest {
         when(urlRepository.findAll())
                 .thenReturn(List.of(url1, url2));
 
-        when(urlMapper.toDTO(url1))
+        when(urlMapper.toEntity(url1))
                 .thenReturn(entity1);
 
-        when(urlMapper.toDTO(url2))
+        when(urlMapper.toEntity(url2))
                 .thenReturn(entity2);
 
         List<UrlEntity> result = urlService.getUrls();
@@ -290,7 +290,7 @@ class UrlServiceImplTest {
         );
 
         verify(urlRepository).findAll();
-        verify(urlMapper).toDTO(url1);
-        verify(urlMapper).toDTO(url2);
+        verify(urlMapper).toEntity(url1);
+        verify(urlMapper).toEntity(url2);
     }
 }
