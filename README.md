@@ -329,6 +329,15 @@ Request body:
 ```text
 HTTP 201 Created
 ```
+Example:
+```json
+{
+  "id": 1,
+  "originalUrl": "https://www.example.com/very/long/url",
+  "shortCode": "abc12345",
+  "createdAt": "2026-08-28T10:30:00"
+}
+```
 
 The controller returns the created `UrlEntity`.
 
@@ -353,6 +362,21 @@ GET /api/urls/
 
 ```text
 HTTP 200 OK
+```
+Example:
+```json
+[
+  {
+    "id": 1,
+    "originalUrl": "https://google.com",
+    "shortCode": "abc12345"
+  },
+  {
+    "id": 2,
+    "originalUrl": "https://amazon.com",
+    "shortCode": "xyz98765"
+  }
+]
 ```
 
 The endpoint returns the list of stored `UrlEntity` objects.
@@ -383,6 +407,18 @@ GET /api/analytics/abc12345/stats
 
 ```text
 HTTP 200 OK
+```
+Example:
+
+```json
+{
+  "shortCode": "abc12345",
+  "originalUrl": "https://www.example.com/very/long/url",
+  "totalClicks": 25,
+  "lastAccessed": "2026-08-28T10:45:00",
+  "lastReferrer": "https://google.com",
+  "lastUserAgent": "Mozilla/5.0"
+}
 ```
 
 The endpoint returns the analytics information for the specified short code.
@@ -420,12 +456,7 @@ Example:
 
 ```json
 {
-  "shortCode": "abc12345",
-  "originalUrl": "https://www.example.com/very/long/url",
-  "totalClicks": 25,
-  "lastAccessed": "2026-08-28T10:45:00",
-  "lastReferrer": "https://google.com",
-  "lastUserAgent": "Mozilla/5.0"
+  "originalUrl": "https://www.example.com/very/long/url"
 }
 ```
 
