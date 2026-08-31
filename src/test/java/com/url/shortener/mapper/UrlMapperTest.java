@@ -24,35 +24,6 @@ class UrlMapperTest {
         createdAt = LocalDateTime.of(2026, 8, 27, 10, 30);
     }
 
-    @Test
-    void toDTO_shouldMapAllFields() {
-
-        UrlDTO dto = UrlDTO.builder()
-                .id(1L)
-                .originalUrl("https://www.google.com")
-                .shortCode("abc12345")
-                .createdAt(createdAt)
-                .build();
-
-        UrlEntity result = urlMapper.toDTO(dto);
-
-        assertNotNull(result);
-        assertEquals(1L, result.getId());
-        assertEquals(
-                "https://www.google.com",
-                result.getOriginalUrl()
-        );
-        assertEquals("abc12345", result.getShortCode());
-        assertEquals(createdAt, result.getCreatedAt());
-    }
-
-    @Test
-    void toDTO_shouldReturnNull_whenInputIsNull() {
-
-        UrlEntity result = urlMapper.toDTO(null);
-
-        assertNull(result);
-    }
 
     @Test
     void toEntity_shouldMapAllFields() {

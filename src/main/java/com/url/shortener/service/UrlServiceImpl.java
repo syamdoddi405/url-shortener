@@ -68,7 +68,7 @@ public class UrlServiceImpl implements UrlService {
         cacheService.put(shortCode, originalUrl);
         log.debug("Cached URL mapping for short code: {}", shortCode);
 
-        return urlMapper.toDTO(urlDTO);
+        return urlMapper.toEntity(urlDTO);
     }
 
     @Override
@@ -110,7 +110,7 @@ public class UrlServiceImpl implements UrlService {
         }
 
         return urls.stream()
-                .map(urlMapper::toDTO)
+                .map(urlMapper::toEntity)
                 .toList();
     }
 }
