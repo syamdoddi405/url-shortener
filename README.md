@@ -336,13 +336,13 @@ Possible responses:
 ## 2. Expand URL
 
 ```http
-GET api/analytics/expand/{shortCode}/url
+GET /api/analytics/expand/{shortCode}/url
 ```
 
 Example:
 
 ```http
-GET /api/urls/abc12345
+GET api/analytics/expand/abc12345/url
 ```
 
 Response:
@@ -370,13 +370,13 @@ Possible responses:
 ## 3. Get URL Statistics
 
 ```http
-GET /api/urls/{shortCode}/stats
+GET /api/analytics/{shortCode}/stats
 ```
 
 Example:
 
 ```http
-GET /api/urls/abc12345/stats
+GET /api/analytics/abc12345/stats
 ```
 
 Response:
