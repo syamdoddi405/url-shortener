@@ -5,7 +5,7 @@ import com.url.shortener.dto.AnalyticsDTO;
 import com.url.shortener.entity.AnalyticsEntity;
 
 /**
- * Mapper for converting between AnalyticsEntity and AnalyticsDTO.
+ *
  * Follows the Mapper/Converter design pattern to handle entity-DTO transformations.
  * Ensures separation of concerns and reduces boilerplate code.
  */
@@ -14,7 +14,7 @@ public class AnalyticsMapper {
 
 
     /**
-     * Converts AnalyticsEntity to AnalyticsDTO.
+     * Converts AnalyticsDTO to AnalyticsEntity.
      *
      * @param dto the data transfer object
      * @return the JPA entity
