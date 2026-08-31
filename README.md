@@ -333,7 +333,7 @@ Possible responses:
 
 ---
 
-## 4. Get All URLs
+## 2. Get All URLs
 
 ```http
 GET /api/urls
@@ -357,8 +357,6 @@ Response:
 ```
 
 ---
-
-## 5. Analytics Expansion Endpoint
 
 ## 3. Get URL Statistics
 
@@ -394,7 +392,7 @@ Possible responses:
 ```
 ---
 
-## 2. Expand URL
+## 4. Analytics Expansion Endpoint
 
 ```http
 GET /api/analytics/expand/{shortCode}/url
