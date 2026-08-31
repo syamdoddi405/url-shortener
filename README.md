@@ -420,7 +420,12 @@ Example:
 
 ```json
 {
-  "originalUrl": "https://www.example.com/very/long/url"
+  "shortCode": "abc12345",
+  "originalUrl": "https://www.example.com/very/long/url",
+  "totalClicks": 25,
+  "lastAccessed": "2026-08-28T10:45:00",
+  "lastReferrer": "https://google.com",
+  "lastUserAgent": "Mozilla/5.0"
 }
 ```
 
