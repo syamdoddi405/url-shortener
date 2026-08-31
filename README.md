@@ -424,8 +424,6 @@ Possible responses:
 500 Internal Server Error
 ```
 
----
-
 This endpoint:
 
 1. Expands the short URL
