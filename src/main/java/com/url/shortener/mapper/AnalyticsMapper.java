@@ -12,30 +12,9 @@ import com.url.shortener.entity.AnalyticsEntity;
 @Component
 public class AnalyticsMapper {
 
-    /**
-     * Converts AnalyticsEntity to AnalyticsDTO.
-     *
-     * @param entity the JPA entity
-     * @return the data transfer object
-     */
-    public AnalyticsEntity toDTO(AnalyticsDTO entity) {  
-        if (entity == null) {
-            return null;
-        }
-        return AnalyticsEntity.builder()
-                .id(entity.getId())
-                .shortCode(entity.getShortCode())
-                .originalUrl(entity.getOriginalUrl())
-                .totalClicks(entity.getTotalClicks())
-                .createdAt(entity.getCreatedAt())
-                .lastAccessed(entity.getLastAccessed())
-                .lastReferrer(entity.getLastReferrer())
-                .lastUserAgent(entity.getLastUserAgent())
-                .build();
-    }
 
     /**
-     * Converts AnalyticsDTO to AnalyticsEntity.
+     * Converts AnalyticsEntity to AnalyticsDTO.
      *
      * @param dto the data transfer object
      * @return the JPA entity

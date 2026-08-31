@@ -85,7 +85,7 @@ class AnalyticsServiceImplTest {
         when(analyticsRepository.findByShortCode(shortCode))
                 .thenReturn(Optional.of(analyticsDTO));
 
-        when(analyticsMapper.toDTO(analyticsDTO))
+        when(analyticsMapper.toEntity(analyticsDTO))
                 .thenReturn(analyticsEntity);
 
         AnalyticsEntity result =
@@ -98,7 +98,7 @@ class AnalyticsServiceImplTest {
 
         verify(urlRepository).findByShortCode(shortCode);
         verify(analyticsRepository).findByShortCode(shortCode);
-        verify(analyticsMapper).toDTO(analyticsDTO);
+        verify(analyticsMapper).toEntity(analyticsDTO);
     }
 
     @Test
@@ -117,7 +117,7 @@ class AnalyticsServiceImplTest {
                         .totalClicks(0)
                         .build();
 
-        when(analyticsMapper.toDTO(any(AnalyticsDTO.class)))
+        when(analyticsMapper.toEntity(any(AnalyticsDTO.class)))
                 .thenReturn(emptyAnalytics);
 
         AnalyticsEntity result =
@@ -130,7 +130,7 @@ class AnalyticsServiceImplTest {
 
         verify(urlRepository).findByShortCode(shortCode);
         verify(analyticsRepository).findByShortCode(shortCode);
-        verify(analyticsMapper).toDTO(any(AnalyticsDTO.class));
+        verify(analyticsMapper).toEntity(any(AnalyticsDTO.class));
     }
 
     @Test
@@ -156,7 +156,7 @@ class AnalyticsServiceImplTest {
                 .findByShortCode(any());
 
         verify(analyticsMapper, never())
-                .toDTO(any());
+                .toEntity(any());
     }
 
     @Test

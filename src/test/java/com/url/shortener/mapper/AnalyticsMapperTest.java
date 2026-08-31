@@ -30,64 +30,6 @@ class AnalyticsMapperTest {
                 LocalDateTime.of(2026, 8, 27, 12, 30);
     }
 
-    @Test
-    void toDTO_shouldMapAllFields() {
-
-        AnalyticsDTO dto = AnalyticsDTO.builder()
-                .id(100L)
-                .shortCode("abc12345")
-                .originalUrl("https://google.com")
-                .totalClicks(25)
-                .createdAt(createdAt)
-                .lastAccessed(lastAccessed)
-                .lastReferrer("https://twitter.com")
-                .lastUserAgent("Mozilla/5.0")
-                .build();
-
-        AnalyticsEntity result =
-                analyticsMapper.toDTO(dto);
-
-        assertNotNull(result);
-
-        assertEquals(100L, result.getId());
-        assertEquals(
-                "abc12345",
-                result.getShortCode()
-        );
-        assertEquals(
-                "https://google.com",
-                result.getOriginalUrl()
-        );
-        assertEquals(
-                25,
-                result.getTotalClicks()
-        );
-        assertEquals(
-                createdAt,
-                result.getCreatedAt()
-        );
-        assertEquals(
-                lastAccessed,
-                result.getLastAccessed()
-        );
-        assertEquals(
-                "https://twitter.com",
-                result.getLastReferrer()
-        );
-        assertEquals(
-                "Mozilla/5.0",
-                result.getLastUserAgent()
-        );
-    }
-
-    @Test
-    void toDTO_shouldReturnNull_whenInputIsNull() {
-
-        AnalyticsEntity result =
-                analyticsMapper.toDTO(null);
-
-        assertNull(result);
-    }
 
     @Test
     void toEntity_shouldMapAllFields() {

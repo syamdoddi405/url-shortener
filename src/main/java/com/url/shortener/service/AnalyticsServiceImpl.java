@@ -55,7 +55,7 @@ public class AnalyticsServiceImpl implements AnalyticsService {
                         .build());
 
         log.debug("Retrieved analytics for short code: {} with {} clicks", shortCode, analyticsEntity.getTotalClicks());
-        return analyticsMapper.toDTO(analyticsEntity);
+        return analyticsMapper.toEntity(analyticsEntity);
     }
 
     @Override
