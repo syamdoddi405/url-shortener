@@ -1,6 +1,7 @@
 package com.url.shortener.controller;
 
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -24,6 +25,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import com.url.shortener.entity.UrlEntity;
+import com.url.shortener.exceptions.UrlNotFoundException;
 import com.url.shortener.kafka.AnalyticsEventProducer;
 import com.url.shortener.service.UrlService;
 import com.url.shortener.service.context.RequestContext;
@@ -50,7 +52,8 @@ class UrlControllerTest {
         UrlController controller =
                 new UrlController(
                         urlService,
-                        requestContext
+                        requestContext,
+                        analyticsEventProducer
                 );
 
         mockMvc = MockMvcBuilders
@@ -275,5 +278,84 @@ class UrlControllerTest {
     }
 
 
+    @Test
+    void expand_shouldReturn200_andCaptureAnalytics()
+            throws Exception {
+
+        String shortCode = "a1b2c3d4";
+        String originalUrl = "https://www.google.com";
+
+        when(requestContext.getClientIp())
+                .thenReturn("127.0.0.1");
+
+        when(requestContext.getReferer())
+                .thenReturn("https://google.com");
+
+        when(requestContext.getUserAgent())
+                .thenReturn("Mozilla/5.0");
+
+        when(urlService.expandUrl(shortCode))
+                .thenReturn(originalUrl);
+
+        mockMvc.perform(
+                get("/api/urls/expand/{shortCode}/url", shortCode)
+        )
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.originalUrl")
+                .value(originalUrl));
+
+        verify(urlService).expandUrl(shortCode);
+
+        verify(analyticsEventProducer)
+        .publish(
+                shortCode,
+                "https://google.com",
+                "Mozilla/5.0",
+                "127.0.0.1"
+        );
+    }
+
+    @Test
+    void expand_shouldReturn404_whenShortCodeNotFound()
+            throws Exception {
+
+        String shortCode = "invalid";
+
+        when(requestContext.getClientIp())
+                .thenReturn("127.0.0.1");
+
+        when(urlService.expandUrl(shortCode))
+                .thenThrow(
+                        new UrlNotFoundException(
+                                "URL not found"
+                        )
+                );
+
+        mockMvc.perform(
+                get("/api/urls/expand/{shortCode}/url", shortCode)
+        )
+        .andExpect(status().isNotFound());
+
+    }
+
+    @Test
+    void expand_shouldReturn500_whenServiceFails()
+            throws Exception {
+
+        String shortCode = "a1b2c3d4";
+
+        when(requestContext.getClientIp())
+                .thenReturn("127.0.0.1");
+
+        when(urlService.expandUrl(shortCode))
+                .thenThrow(
+                        new RuntimeException("Database error")
+                );
+
+        mockMvc.perform(
+                get("/api/urls/expand/{shortCode}/url", shortCode)
+        )
+        .andExpect(status().isInternalServerError());
+    }
   
 }

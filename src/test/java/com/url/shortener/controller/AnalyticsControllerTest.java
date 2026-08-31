@@ -47,9 +47,7 @@ class AnalyticsControllerTest {
         AnalyticsController controller =
                 new AnalyticsController(
                         analyticsService,
-                        urlService,
-                        requestContext,
-                        analyticsEventProducer
+                        requestContext
                 );
 
         mockMvc = MockMvcBuilders
@@ -137,89 +135,5 @@ class AnalyticsControllerTest {
         .andExpect(status().isInternalServerError());
     }
 
-    @Test
-    void expand_shouldReturn200_andCaptureAnalytics()
-            throws Exception {
-
-        String shortCode = "a1b2c3d4";
-        String originalUrl = "https://www.google.com";
-
-        when(requestContext.getClientIp())
-                .thenReturn("127.0.0.1");
-
-        when(requestContext.getReferer())
-                .thenReturn("https://google.com");
-
-        when(requestContext.getUserAgent())
-                .thenReturn("Mozilla/5.0");
-
-        when(urlService.expandUrl(shortCode))
-                .thenReturn(originalUrl);
-
-        mockMvc.perform(
-                get("/api/analytics/expand/{shortCode}/url", shortCode)
-        )
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.originalUrl")
-                .value(originalUrl));
-
-        verify(urlService).expandUrl(shortCode);
-
-        verify(analyticsEventProducer)
-        .publish(
-                shortCode,
-                "https://google.com",
-                "Mozilla/5.0",
-                "127.0.0.1"
-        );
-    }
-
-    @Test
-    void expand_shouldReturn404_whenShortCodeNotFound()
-            throws Exception {
-
-        String shortCode = "invalid";
-
-        when(requestContext.getClientIp())
-                .thenReturn("127.0.0.1");
-
-        when(urlService.expandUrl(shortCode))
-                .thenThrow(
-                        new UrlNotFoundException(
-                                "URL not found"
-                        )
-                );
-
-        mockMvc.perform(
-                get("/api/analytics/expand/{shortCode}/url", shortCode)
-        )
-        .andExpect(status().isNotFound());
-
-        verify(analyticsService, never())
-                .saveAnalytics(
-                        anyString(),
-                        anyString(),
-                        anyString()
-                );
-    }
-
-    @Test
-    void expand_shouldReturn500_whenServiceFails()
-            throws Exception {
-
-        String shortCode = "a1b2c3d4";
-
-        when(requestContext.getClientIp())
-                .thenReturn("127.0.0.1");
-
-        when(urlService.expandUrl(shortCode))
-                .thenThrow(
-                        new RuntimeException("Database error")
-                );
-
-        mockMvc.perform(
-                get("/api/analytics/expand/{shortCode}/url", shortCode)
-        )
-        .andExpect(status().isInternalServerError());
-    }
+    
 }
