@@ -336,7 +336,7 @@ Possible responses:
 ## 2. Expand URL
 
 ```http
-GET /api/urls/{shortCode}
+GET api/analytics/expand/{shortCode}/url
 ```
 
 Example:
