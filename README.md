@@ -4,8 +4,6 @@ A production-oriented URL Shortener REST API built with **Java, Spring Boot, Pos
 
 The application provides URL shortening, URL expansion, Redis cache-aside lookup, click analytics, request-context capture, and asynchronous analytics event publishing through Kafka.
 
-> **Branch:** `integrate-kafka`
-
 ---
 
 ## Table of Contents
@@ -1678,4 +1676,4 @@ The architecture separates synchronous URL operations from analytics processing 
 
 The `integrate-kafka` branch is available here:
 
-https://github.com/syamdoddi405/url-shortener/tree/integrate-kafka
+https://github.com/syamdoddi405/url-shortener
