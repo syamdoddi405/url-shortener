@@ -367,6 +367,33 @@ Possible responses:
 
 ---
 
+## 4. Get All URLs
+
+```http
+GET /api/urls
+```
+
+Response:
+
+```json
+[
+  {
+    "id": 1,
+    "originalUrl": "https://google.com",
+    "shortCode": "abc12345"
+  },
+  {
+    "id": 2,
+    "originalUrl": "https://amazon.com",
+    "shortCode": "xyz98765"
+  }
+]
+```
+
+---
+
+## 5. Analytics Expansion Endpoint
+
 ## 3. Get URL Statistics
 
 ```http
@@ -399,35 +426,7 @@ Possible responses:
 404 Not Found
 500 Internal Server Error
 ```
-
 ---
-
-## 4. Get All URLs
-
-```http
-GET /api/urls
-```
-
-Response:
-
-```json
-[
-  {
-    "id": 1,
-    "originalUrl": "https://google.com",
-    "shortCode": "abc12345"
-  },
-  {
-    "id": 2,
-    "originalUrl": "https://amazon.com",
-    "shortCode": "xyz98765"
-  }
-]
-```
-
----
-
-## 5. Analytics Expansion Endpoint
 
 ```http
 GET /api/analytics/expand/{shortCode}/url
