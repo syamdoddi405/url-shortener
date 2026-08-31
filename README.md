@@ -333,40 +333,6 @@ Possible responses:
 
 ---
 
-## 2. Expand URL
-
-```http
-GET /api/analytics/expand/{shortCode}/url
-```
-
-Example:
-
-```http
-GET /api/analytics/expand/abc12345/url
-```
-
-Response:
-
-```http
-200 OK
-```
-
-```json
-{
-  "originalUrl": "https://www.example.com/very/long/url"
-}
-```
-
-Possible responses:
-
-```text
-200 OK
-404 Not Found
-500 Internal Server Error
-```
-
----
-
 ## 4. Get All URLs
 
 ```http
@@ -428,6 +394,8 @@ Possible responses:
 ```
 ---
 
+## 2. Expand URL
+
 ```http
 GET /api/analytics/expand/{shortCode}/url
 ```
@@ -437,6 +405,28 @@ Example:
 ```http
 GET /api/analytics/expand/abc12345/url
 ```
+
+Response:
+
+```http
+200 OK
+```
+
+```json
+{
+  "originalUrl": "https://www.example.com/very/long/url"
+}
+```
+
+Possible responses:
+
+```text
+200 OK
+404 Not Found
+500 Internal Server Error
+```
+
+---
 
 This endpoint:
 
