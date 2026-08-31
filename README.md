@@ -437,13 +437,13 @@ The endpoint returns the analytics information for the specified short code.
 ### Request
 
 ```http
-GET /api/analytics/expand/{shortCode}/url
+GET /api/urls/expand/{shortCode}/url
 ```
 
 Example:
 
 ```http
-GET /api/analytics/expand/abc12345/url
+GET /api/urls/expand/abc12345/url
 ```
 
 ### Successful Response
@@ -467,7 +467,7 @@ During expansion, the application:
 3. Publishes an analytics event to Kafka.
 4. Returns the original URL.
 
-These behaviors are implemented in `AnalyticsController`.
+These behaviors are implemented in `UrlController`.
 
 ### Error Responses
 
@@ -510,7 +510,7 @@ The controller delegates URL shortening to `UrlService` and returns the resultin
 URL expansion uses Redis as the cache layer.
 
 ```text
-GET /api/analytics/expand/{shortCode}/url
+GET /api/urls/expand/{shortCode}/url
                     |
                     v
               UrlService
@@ -542,7 +542,7 @@ After successful expansion, request information is captured and an analytics eve
 Client
    |
    v
-AnalyticsController
+UrlController
    |
    +---- Expand URL
    |
