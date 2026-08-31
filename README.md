@@ -342,7 +342,7 @@ GET /api/analytics/expand/{shortCode}/url
 Example:
 
 ```http
-GET api/analytics/expand/abc12345/url
+GET /api/analytics/expand/abc12345/url
 ```
 
 Response:
