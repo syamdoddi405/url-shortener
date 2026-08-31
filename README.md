@@ -1,10 +1,8 @@
 # URL Shortener
 
-A production-oriented URL Shortener REST API built with **Java, Spring Boot, PostgreSQL, Redis, and Apache Kafka**.
+A URL Shortener REST API built with **Java 17, Spring Boot, PostgreSQL, Redis, and Apache Kafka**.
 
-The application provides URL shortening, URL expansion, Redis cache-aside lookup, click analytics, request-context capture, and asynchronous analytics event publishing through Kafka.
-
----
+The service provides URL shortening, URL retrieval, URL expansion, Redis-based caching, click analytics, HTTP request-context capture, and asynchronous analytics event publishing through Kafka.
 
 ## Table of Contents
 
@@ -21,23 +19,20 @@ The application provides URL shortening, URL expansion, Redis cache-aside lookup
 * [Redis Caching](#redis-caching)
 * [Short Code Generation](#short-code-generation)
 * [Database](#database)
-* [Error Handling](#error-handling)
+* [Validation and Error Handling](#validation-and-error-handling)
 * [Configuration](#configuration)
 * [Prerequisites](#prerequisites)
 * [Running the Application](#running-the-application)
-* [Running Kafka](#running-kafka)
+* [API Documentation](#api-documentation)
 * [Testing](#testing)
-* [Unit Testing Strategy](#unit-testing-strategy)
-* [SOLID Principles](#solid-principles)
-* [Production Considerations](#production-considerations)
+* [Design Principles](#design-principles)
 * [Known Limitations](#known-limitations)
-* [Future Improvements](#future-improvements)
 
 ---
 
-# Overview
+## Overview
 
-The URL Shortener converts long URLs into short, easy-to-share codes.
+The URL Shortener converts a long URL into a short code that can subsequently be used to retrieve the original URL.
 
 Example:
 
@@ -45,21 +40,22 @@ Example:
 Original URL:
 https://www.example.com/products/software-engineering/url-shortener
 
-Short URL:
-http://localhost:9000/api/urls/abc12345
+Short Code:
+abc12345
 ```
 
 The application uses:
 
-* **PostgreSQL** for persistent URL and analytics data
-* **Redis** for low-latency URL lookups
+* **PostgreSQL** for persistent data
+* **Redis** for URL caching
 * **Apache Kafka** for asynchronous analytics events
-* **Spring Data JPA** for persistence
+* **Spring Data JPA** for database access
 * **Spring Boot** for REST APIs and application configuration
 * **MapStruct** for DTO/entity mapping
-* **JUnit 5 + Mockito** for unit testing
+* **Jakarta Validation** for request validation
+* **Springdoc OpenAPI** for API documentation
 
-The service follows a layered architecture with clear separation between controllers, services, repositories, caching, request context, Kafka messaging, mapping, and utilities.
+The application follows a layered structure separating controllers, services, repositories, caching, request context, Kafka messaging, mapping, and utility components.
 
 ---
 
@@ -67,139 +63,171 @@ The service follows a layered architecture with clear separation between control
 
 ## URL Management
 
-* Shorten long URLs
-* Generate an 8-character hexadecimal short code
-* Expand a short code to the original URL
+* Shorten URLs
+* Generate short codes
+* Persist URL mappings
 * Retrieve all stored URLs
-* Detect missing short codes
-* Persist URL mappings in PostgreSQL
+* Expand a short code into the original URL
+* Handle URLs that cannot be found
 
 ## Redis Caching
 
-* Cache short-code → original-URL mappings
-* Cache-aside pattern
-* Cache hit avoids database access
-* Cache miss falls back to PostgreSQL
-* Database results are written back to Redis
-* Redis failures do not prevent database lookup
+The application uses Redis for URL lookup caching.
+
+The cache implementation provides:
+
+* Cache lookup
+* Cache insertion
+* Cache invalidation
+* Cache existence checks
+* Database fallback when a cache lookup does not return a value
+* Redis failure handling
+
+The URL expansion flow follows a cache-aside approach:
+
+```text
+Request
+   |
+   v
+Redis
+   |
+   +---- Cache Hit ------> Original URL
+   |
+   +---- Cache Miss -----> PostgreSQL
+                              |
+                              v
+                           Redis
+                              |
+                              v
+                         Original URL
+```
 
 ## Analytics
 
-* Track URL clicks
-* Track referrer
-* Track user-agent
-* Track client IP
-* Track last access time
-* Maintain total click count
-* Retrieve analytics by short code
+The application captures analytics information when a shortened URL is expanded.
 
-## Kafka
+The captured request information includes:
 
-* Publish URL click events to Kafka
-* JSON-based analytics event payload
-* Kafka topic: `url-click-events`
-* Three Kafka partitions
-* Short code used as the Kafka message key
-* Kafka consumer delegates persistence to `AnalyticsService`
+* Short code
+* Referrer
+* User-Agent
+* Client IP
+* Event ID
+* Event timestamp
 
-## Error Handling
+Analytics statistics include click and access information.
 
-* URL-not-found handling
-* Invalid URL handling
-* HTTP 404 responses
-* HTTP 400 responses
-* HTTP 500 responses
-* Logging at DEBUG, INFO, WARN and ERROR levels
+## Apache Kafka
 
-## Testing
+Kafka is used to publish URL click/expansion analytics asynchronously.
 
-Unit tests cover:
+The configured Kafka topic is:
 
-* Controllers
-* Services
-* Mappers
-* Redis cache
-* HTTP request context
-* Short-code generator
-* Kafka components
+```text
+url-click-events
+```
+
+The topic is configured with:
+
+```text
+Partitions: 3
+Replicas:   1
+```
+
+The short code is used as the Kafka message key.
+
+## API Documentation
+
+The application includes OpenAPI/Swagger UI through Springdoc.
+
+Swagger UI is configured at:
+
+```text
+/swagger-ui.html
+```
+
+OpenAPI JSON is configured at:
+
+```text
+/v3/api-docs
+```
 
 ---
 
 # Architecture
 
 ```text
-                         ┌──────────────────────┐
-                         │       Client         │
-                         └──────────┬───────────┘
-                                    │
-                                    ▼
-                         ┌──────────────────────┐
-                         │    REST Controllers  │
-                         │                      │
-                         │  UrlController       │
-                         │  AnalyticsController│
-                         └──────────┬───────────┘
-                                    │
-                                    ▼
-                         ┌──────────────────────┐
-                         │     Service Layer    │
-                         │                      │
-                         │  UrlService          │
-                         │  AnalyticsService    │
-                         └───────┬───────┬──────┘
-                                 │       │
-                   ┌─────────────┘       └─────────────┐
-                   ▼                                   ▼
-          ┌─────────────────┐                  ┌─────────────────┐
-          │      Redis      │                  │   PostgreSQL    │
-          │                 │                  │                 │
-          │ URL Cache       │                  │ URL Data        │
-          │ Cache-Aside     │                  │ Analytics Data  │
-          └─────────────────┘                  └─────────────────┘
-
-                         Analytics Events
-                                │
-                                ▼
-                         ┌─────────────────┐
-                         │      Kafka      │
-                         │                 │
-                         │ url-click-events│
-                         └────────┬────────┘
-                                  │
-                                  ▼
-                         ┌─────────────────┐
-                         │ Kafka Consumer   │
-                         │                 │
-                         │ AnalyticsEvent   │
-                         │ Consumer         │
-                         └────────┬────────┘
-                                  │
-                                  ▼
-                         AnalyticsService
-                                  │
-                                  ▼
-                             PostgreSQL
+                         +----------------------+
+                         |        Client        |
+                         +----------+-----------+
+                                    |
+                                    v
+                         +----------------------+
+                         |   REST Controllers   |
+                         |                      |
+                         |  UrlController       |
+                         |  AnalyticsController |
+                         +----------+-----------+
+                                    |
+                                    v
+                         +----------------------+
+                         |    Service Layer     |
+                         |                      |
+                         |  UrlService          |
+                         |  AnalyticsService    |
+                         +----+------------+----+
+                              |            |
+                              |            |
+                              v            v
+                       +----------+   +-----------+
+                       |  Redis   |   | PostgreSQL |
+                       |  Cache   |   | Database   |
+                       +----------+   +-----------+
+                                            ^
+                                            |
+                                            |
+                         +------------------+---+
+                         |                      |
+                         |     Kafka Consumer    |
+                         |                      |
+                         +----------^-----------+
+                                    |
+                                    |
+                         +----------+-----------+
+                         |        Kafka         |
+                         |                      |
+                         | url-click-events     |
+                         +----------^-----------+
+                                    |
+                                    |
+                         +----------+-----------+
+                         | Kafka Producer       |
+                         | AnalyticsEventProducer|
+                         +----------------------+
 ```
 
 ---
 
 # Technology Stack
 
-| Component        | Technology                               |
-| ---------------- | ---------------------------------------- |
-| Language         | Java 17                                  |
-| Framework        | Spring Boot 4.1.1                        |
-| Web              | Spring MVC                               |
-| Persistence      | Spring Data JPA                          |
-| Database         | PostgreSQL                               |
-| Cache            | Redis                                    |
-| Messaging        | Apache Kafka                             |
-| Mapping          | MapStruct                                |
-| Validation       | Jakarta Validation / Hibernate Validator |
-| Logging          | SLF4J / Logback                          |
-| Testing          | JUnit 5 / Mockito                        |
-| Build            | Maven                                    |
-| Containerization | Docker                                   |
+| Component         | Technology                               |
+| ----------------- | ---------------------------------------- |
+| Language          | Java 17                                  |
+| Framework         | Spring Boot 4.1.1                        |
+| Web               | Spring MVC                               |
+| Persistence       | Spring Data JPA                          |
+| Database          | PostgreSQL                               |
+| Cache             | Redis                                    |
+| Messaging         | Apache Kafka                             |
+| Object Mapping    | MapStruct 1.5.5.Final                    |
+| Validation        | Jakarta Validation / Hibernate Validator |
+| API Documentation | Springdoc OpenAPI                        |
+| Logging           | SLF4J / Logback                          |
+| Testing           | JUnit / Spring Boot Test dependencies    |
+| Build Tool        | Maven                                    |
+| Code Generation   | Lombok                                   |
+
+The versions and dependencies above are taken from the project's Maven configuration.
 
 ---
 
@@ -222,50 +250,34 @@ src/
 │   │       │   └── AnalyticsController.java
 │   │       │
 │   │       ├── dto/
-│   │       │   ├── UrlDTO.java
-│   │       │   ├── AnalyticsDTO.java
-│   │       │   ├── AnalyticsEvent.java
-│   │       │   └── ShortenUrlRequest.java
 │   │       │
 │   │       ├── entity/
-│   │       │   ├── UrlEntity.java
-│   │       │   ├── AnalyticsEntity.java
-│   │       │   └── ExpandUrlResponse.java
 │   │       │
 │   │       ├── exceptionhandler/
 │   │       │
 │   │       ├── exceptions/
-│   │       │   ├── UrlNotFoundException.java
-│   │       │   └── InvalidUrlException.java
 │   │       │
 │   │       ├── kafka/
 │   │       │   ├── AnalyticsEventProducer.java
 │   │       │   └── AnalyticsEventConsumer.java
 │   │       │
 │   │       ├── mapper/
-│   │       │   ├── UrlMapper.java
-│   │       │   └── AnalyticsMapper.java
 │   │       │
 │   │       ├── repository/
-│   │       │   ├── UrlRepository.java
-│   │       │   └── AnalyticsRepository.java
 │   │       │
 │   │       ├── service/
 │   │       │   ├── UrlService.java
 │   │       │   ├── UrlServiceImpl.java
 │   │       │   ├── AnalyticsService.java
 │   │       │   ├── AnalyticsServiceImpl.java
-│   │       │   │
 │   │       │   ├── cache/
 │   │       │   │   ├── CacheService.java
 │   │       │   │   └── RedisCacheService.java
-│   │       │   │
 │   │       │   └── context/
 │   │       │       ├── RequestContext.java
 │   │       │       └── HttpRequestContext.java
 │   │       │
 │   │       └── util/
-│   │           └── ShortCodeGenerator.java
 │   │
 │   └── resources/
 │       └── application.properties
@@ -273,32 +285,38 @@ src/
 └── test/
     └── java/
         └── com/url/shortener/
-            ├── controller/
-            ├── service/
-            ├── mapper/
-            ├── cache/
-            ├── context/
-            └── util/
 ```
 
 ---
 
 # API Endpoints
 
-Base URL:
+The configured application port is:
+
+```text
+9000
+```
+
+Therefore, the base URL is:
 
 ```text
 http://localhost:9000
 ```
 
+The endpoint mappings below are based on the current controller implementation.
+
+---
+
 ## 1. Shorten URL
+
+### Request
 
 ```http
 POST /api/urls/shorten
 Content-Type: application/json
 ```
 
-Request:
+Request body:
 
 ```json
 {
@@ -306,59 +324,50 @@ Request:
 }
 ```
 
-Successful response:
-
-```http
-201 Created
-```
-
-Example:
-
-```json
-{
-  "id": 1,
-  "originalUrl": "https://www.example.com/very/long/url",
-  "shortCode": "abc12345",
-  "createdAt": "2026-08-28T10:30:00"
-}
-```
-
-Possible responses:
+### Successful Response
 
 ```text
-201 Created
+HTTP 201 Created
+```
+
+The controller returns the created `UrlEntity`.
+
+### Error Responses
+
+```text
 400 Bad Request
 500 Internal Server Error
 ```
 
 ---
 
-## 2. Get All URLs
+## 2. Retrieve All URLs
+
+### Request
 
 ```http
-GET /api/urls
+GET /api/urls/
 ```
 
-Response:
+### Successful Response
 
-```json
-[
-  {
-    "id": 1,
-    "originalUrl": "https://google.com",
-    "shortCode": "abc12345"
-  },
-  {
-    "id": 2,
-    "originalUrl": "https://amazon.com",
-    "shortCode": "xyz98765"
-  }
-]
+```text
+HTTP 200 OK
+```
+
+The endpoint returns the list of stored `UrlEntity` objects.
+
+### Error Response
+
+```text
+500 Internal Server Error
 ```
 
 ---
 
-## 3. Get URL Statistics
+## 3. Retrieve URL Analytics
+
+### Request
 
 ```http
 GET /api/analytics/{shortCode}/stats
@@ -370,29 +379,26 @@ Example:
 GET /api/analytics/abc12345/stats
 ```
 
-Response:
-
-```json
-{
-  "shortCode": "abc12345",
-  "originalUrl": "https://www.example.com/very/long/url",
-  "totalClicks": 25,
-  "lastAccessed": "2026-08-28T10:45:00",
-  "lastReferrer": "https://google.com",
-  "lastUserAgent": "Mozilla/5.0"
-}
-```
-
-Possible responses:
+### Successful Response
 
 ```text
-200 OK
+HTTP 200 OK
+```
+
+The endpoint returns the analytics information for the specified short code.
+
+### Error Responses
+
+```text
 404 Not Found
 500 Internal Server Error
 ```
+
 ---
 
-## 4. Analytics Expansion Endpoint
+## 4. Expand Short URL
+
+### Request
 
 ```http
 GET /api/analytics/expand/{shortCode}/url
@@ -404,39 +410,34 @@ Example:
 GET /api/analytics/expand/abc12345/url
 ```
 
-Response:
-
-```http
-200 OK
-```
-
-```json
-{
-  "originalUrl": "https://www.example.com/very/long/url"
-}
-```
-
-Possible responses:
+### Successful Response
 
 ```text
-200 OK
-404 Not Found
-500 Internal Server Error
+HTTP 200 OK
 ```
 
-This endpoint:
-
-1. Expands the short URL
-2. Reads request metadata
-3. Publishes an analytics event to Kafka
-4. Returns the original URL
-
-Response:
+Example:
 
 ```json
 {
   "originalUrl": "https://www.example.com/very/long/url"
 }
+```
+
+During expansion, the application:
+
+1. Retrieves the original URL.
+2. Captures request metadata.
+3. Publishes an analytics event to Kafka.
+4. Returns the original URL.
+
+These behaviors are implemented in `AnalyticsController`.
+
+### Error Responses
+
+```text
+404 Not Found
+500 Internal Server Error
 ```
 
 ---
@@ -445,182 +446,179 @@ Response:
 
 ```text
 POST /api/urls/shorten
-          │
-          ▼
+          |
+          v
    UrlController
-          │
-          ▼
-   UrlServiceImpl
-          │
-          ├── Validate URL
-          │
-          ├── Generate short code
-          │
-          ├── Check existing short code
-          │
-          ├── Save URL
-          │
-          ├── Cache mapping in Redis
-          │
-          └── Map DTO → Entity
-                  │
-                  ▼
-             HTTP 201
+          |
+          v
+   UrlService
+          |
+          +---- Validate URL
+          |
+          +---- Generate short code
+          |
+          +---- Persist URL
+          |
+          +---- Cache URL mapping
+          |
+          v
+     HTTP 201
 ```
 
-The URL service validates the input, generates the short code, persists the URL and stores the mapping in Redis.
+The controller delegates URL shortening to `UrlService` and returns the resulting `UrlEntity`.
 
 ---
 
 # URL Expansion Flow
 
-The application uses the **Cache-Aside Pattern**.
+URL expansion uses Redis as the cache layer.
 
 ```text
-GET /api/urls/{shortCode}
-            │
-            ▼
-      UrlServiceImpl
-            │
-            ▼
-       Redis Cache
-         /      \
-       HIT      MISS
-        │         │
-        │         ▼
-        │    PostgreSQL
-        │         │
-        │         ▼
-        │    Update Redis
-        │         │
-        └────┬────┘
-             ▼
-       Original URL
+GET /api/analytics/expand/{shortCode}/url
+                    |
+                    v
+              UrlService
+                    |
+                    v
+                 Redis
+                /     \
+              HIT     MISS
+               |        |
+               |        v
+               |    PostgreSQL
+               |        |
+               |        v
+               |      Redis
+               |        |
+               +----+---+
+                    |
+                    v
+              Original URL
 ```
 
-The service first checks Redis. If the value isn't available, it queries PostgreSQL and populates Redis for subsequent requests.
-
-This reduces database traffic for frequently accessed URLs.
+After successful expansion, request information is captured and an analytics event is published to Kafka.
 
 ---
 
 # Analytics Flow
 
-Analytics contains:
-
-* short code
-* referrer
-* user agent
-* client IP
-* event ID
-* event timestamp
-* total clicks
-* last access time
-
-The Kafka event object is represented by `AnalyticsEvent`.
-
 ```text
 Client
-  │
-  ▼
+   |
+   v
 AnalyticsController
-  │
-  ├── Expand URL
-  │
-  ├── Read Referer
-  ├── Read User-Agent
-  ├── Read Client IP
-  │
-  ▼
+   |
+   +---- Expand URL
+   |
+   +---- Get Referrer
+   |
+   +---- Get User-Agent
+   |
+   +---- Get Client IP
+   |
+   v
 AnalyticsEventProducer
-  │
-  ▼
+   |
+   v
 Kafka
-  │
-  │  url-click-events
-  ▼
+   |
+   |  url-click-events
+   |
+   v
 AnalyticsEventConsumer
-  │
-  ▼
+   |
+   v
 AnalyticsService
-  │
-  ▼
+   |
+   v
 PostgreSQL
 ```
+
+The expansion endpoint obtains the referrer, User-Agent, and client IP from `RequestContext`, then passes them to `AnalyticsEventProducer`.
 
 ---
 
 # Kafka Integration
 
-## Topic
+## Kafka Topic
+
+The application uses:
 
 ```text
 url-click-events
 ```
 
-The current Kafka configuration creates the topic with:
+The topic is configured by:
 
-```text
-Partitions: 3
-Replicas:   1
+```properties
+kafka.topic.url-click-events=url-click-events
 ```
 
-The topic configuration is implemented through a Spring `NewTopic` bean.
+The `KafkaConfig` creates the topic with three partitions and one replica.
 
 ## Producer
 
-`AnalyticsEventProducer` creates an event containing:
+The application uses `AnalyticsEventProducer` to publish analytics events.
 
-```json
-{
-  "eventId": "uuid",
-  "shortCode": "abc12345",
-  "referrer": "https://google.com",
-  "userAgent": "Mozilla/5.0",
-  "clientIp": "127.0.0.1",
-  "eventTime": "2026-08-28T10:30:00"
-}
+The Kafka message key is the URL short code.
+
+The configured producer serializers are:
+
+```properties
+spring.kafka.producer.key-serializer=org.apache.kafka.common.serialization.StringSerializer
+spring.kafka.producer.value-serializer=org.springframework.kafka.support.serializer.JacksonJsonSerializer
 ```
-
-The short code is used as the Kafka message key:
-
-```text
-Kafka key = shortCode
-```
-
-The producer publishes the event using `KafkaTemplate`.
 
 ## Consumer
 
-`AnalyticsEventConsumer` listens to:
+The configured consumer group is:
 
 ```text
-url-click-events
+url-shortener-analytics
 ```
 
-and delegates the event to:
+The consumer uses:
+
+```properties
+spring.kafka.consumer.key-deserializer=org.apache.kafka.common.serialization.StringDeserializer
+spring.kafka.consumer.value-deserializer=org.springframework.kafka.support.serializer.JacksonJsonDeserializer
+```
+
+The default analytics event type is:
 
 ```text
-AnalyticsService.saveAnalytics(...)
+com.url.shortener.dto.AnalyticsEvent
 ```
 
-This keeps Kafka-specific processing separate from analytics persistence logic.
+The consumer delegates analytics processing to `AnalyticsService`.
 
 ---
 
 # Redis Caching
 
-Redis is used as a distributed cache for URL mappings.
+Redis is configured as the cache for URL lookups.
 
-The current implementation uses:
+The application uses:
 
 ```text
 RedisTemplate<String, String>
 ```
 
-with string serializers for both keys and values.
+The configured Redis server is:
 
-### Cache operations
+```text
+localhost:6379
+```
+
+Configuration:
+
+```properties
+spring.redis.host=localhost
+spring.redis.port=6379
+spring.redis.timeout=60000
+```
+
+The Redis implementation supports:
 
 ```text
 get()
@@ -629,58 +627,17 @@ invalidate()
 exists()
 ```
 
-Redis failures are handled gracefully by `RedisCacheService`.
+Redis is used as a cache layer while PostgreSQL remains the persistent data store.
 
-For example, if Redis is unavailable during an URL expansion:
-
-```text
-Redis
-  │
-  X unavailable
-  │
-  ▼
-PostgreSQL fallback
-```
-
-This prevents Redis availability from becoming a hard dependency for URL retrieval.
+The Redis configuration and connection properties are defined in `application.properties`.
 
 ---
 
 # Short Code Generation
 
-The default implementation generates an **8-character hexadecimal short code**.
+The current implementation generates an **8-character hexadecimal short code**.
 
-Algorithm:
-
-```text
-Original URL
-     │
-     ▼
-String.hashCode()
-     │
-     ▼
-Integer.toHexString()
-     │
-     ▼
-Pad / truncate
-     │
-     ▼
-8-character short code
-```
-
-Example:
-
-```text
-https://google.com
-        ↓
-hashCode()
-        ↓
-hexadecimal representation
-        ↓
-a1b2c3d4
-```
-
-The application also contains an alternative Base62 implementation using:
+The repository also contains a Base62 implementation using:
 
 ```text
 0-9
@@ -688,263 +645,171 @@ a-z
 A-Z
 ```
 
-The current implementation is hash-based and therefore should not be considered collision-proof.
+The current hash-based implementation is not collision-proof.
+
+Therefore, different URLs can potentially generate the same short code.
 
 ---
 
 # Database
 
-PostgreSQL is used as the persistent data store.
+PostgreSQL is configured as the application's persistent database.
 
-## URL Repository
+The configured database connection is:
 
-```text
-UrlRepository
-      │
-      └── JpaRepository<UrlDTO, Long>
+```properties
+spring.datasource.url=jdbc:postgresql://localhost:5432/urlshortener
+spring.datasource.username=postgres
+spring.datasource.password=postgres
 ```
 
-It provides:
+JPA/Hibernate configuration:
 
-```java
-Optional<UrlDTO> findByShortCode(String shortCode);
+```properties
+spring.jpa.hibernate.ddl-auto=update
+spring.jpa.show-sql=false
+spring.jpa.properties.hibernate.format_sql=true
+spring.jpa.database-platform=org.hibernate.dialect.PostgreSQLDialect
 ```
 
-## Analytics Repository
-
-```text
-AnalyticsRepository
-      │
-      └── JpaRepository<AnalyticsDTO, Long>
-```
-
-It provides:
-
-```java
-Optional<AnalyticsDTO> findByShortCode(String shortCode);
-```
+The application uses Spring Data JPA repositories for persistence.
 
 ---
 
-# Analytics Persistence
+# Validation and Error Handling
 
-When an analytics event is consumed:
+The application includes:
 
-```text
-AnalyticsEvent
-      │
-      ▼
-AnalyticsService
-      │
-      ├── Find existing analytics
-      │
-      ├── Create record if required
-      │
-      ├── Increment totalClicks
-      │
-      ├── Update lastAccessed
-      │
-      ├── Update referrer
-      │
-      ├── Update user-agent
-      │
-      ├── Read cached original URL
-      │
-      └── Save analytics
-```
+* Jakarta Validation API
+* Hibernate Validator
+* Spring Boot Validation
+* URL validation
+* URL-not-found handling
+* HTTP 400 responses
+* HTTP 404 responses
+* HTTP 500 responses
+* Application logging
 
-`AnalyticsServiceImpl` performs these operations inside a transaction.
-
----
-
-# Request Context
-
-HTTP request information is abstracted behind `RequestContext`.
-
-The current implementation captures:
-
-```text
-Client IP
-Referer
-User-Agent
-```
-
-For client IP:
-
-```text
-X-Forwarded-For
-       │
-       ├── Present → first IP
-       │
-       └── Missing → request.getRemoteAddr()
-```
-
-This abstraction is request-scoped and wraps `HttpServletRequest`.
-
----
-
-# Error Handling
-
-The application uses custom exceptions including:
-
-```text
-UrlNotFoundException
-InvalidUrlException
-```
-
-Typical HTTP mapping:
-
-| Exception                    | HTTP Status |
-| ---------------------------- | ----------: |
-| Invalid URL                  |         400 |
-| URL not found                |         404 |
-| Unexpected application error |         500 |
-
-Controllers log failures and return appropriate `ResponseEntity` responses.
+The controllers explicitly handle invalid URL input and URL-not-found scenarios.
 
 ---
 
 # Configuration
 
-Current default application configuration:
+The main application configuration is located at:
+
+```text
+src/main/resources/application.properties
+```
+
+The application runs on:
+
+```text
+server.port=9000
+```
+
+## PostgreSQL
 
 ```properties
-spring.application.name=url-shortener
-
-server.port=9000
-
 spring.datasource.url=jdbc:postgresql://localhost:5432/urlshortener
 spring.datasource.username=postgres
 spring.datasource.password=postgres
-
-spring.redis.host=localhost
-spring.redis.port=6379
-spring.redis.password=
-spring.redis.timeout=60000
 ```
 
-The current repository configuration uses PostgreSQL on port `5432`, Redis on port `6379`, and the application on port `9000`.
+## Redis
 
-For Kafka, configure:
+```properties
+spring.redis.host=localhost
+spring.redis.port=6379
+```
+
+## Kafka
 
 ```properties
 spring.kafka.bootstrap-servers=localhost:9092
-
-spring.kafka.consumer.group-id=url-shortener-analytics
-spring.kafka.consumer.auto-offset-reset=earliest
-
-kafka.topic.url-click-events=url-click-events
 ```
 
-For JSON serialization/deserialization, use the serializer/deserializer versions compatible with the Spring Kafka version used by the application.
+## Swagger / OpenAPI
+
+```properties
+springdoc.api-docs.path=/v3/api-docs
+springdoc.swagger-ui.path=/swagger-ui.html
+springdoc.swagger-ui.enabled=true
+```
+
+These values are taken from the current `application.properties`.
 
 ---
 
 # Prerequisites
 
-Install:
+The application requires the following components:
 
-* Java 17+
-* Maven 3.9+
+* Java 17
+* Maven
 * PostgreSQL
 * Redis
 * Apache Kafka
 
-Verify Java:
-
-```bash
-java -version
-```
-
-Verify Maven:
-
-```bash
-mvn -version
-```
+The Java version and application dependencies are defined in `pom.xml`.
 
 ---
 
 # Running the Application
 
-## 1. Start PostgreSQL
+## 1. Clone the repository
 
-Create the database:
-
-```sql
-CREATE DATABASE urlshortener;
+```bash
+git clone https://github.com/syamdoddi405/url-shortener.git
 ```
 
-Default credentials:
+```bash
+cd url-shortener
+```
+
+## 2. Configure PostgreSQL
+
+Create/configure the PostgreSQL database according to the values in:
 
 ```text
-Username: postgres
-Password: postgres
-Port: 5432
+src/main/resources/application.properties
 ```
 
----
+The configured database is:
 
-## 2. Start Redis
+```text
+urlshortener
+```
 
-Default:
+## 3. Start Redis
+
+Redis is expected on:
 
 ```text
 localhost:6379
 ```
 
-Verify Redis:
+## 4. Start Kafka
 
-```bash
-redis-cli ping
-```
-
-Expected:
-
-```text
-PONG
-```
-
----
-
-## 3. Start Kafka
-
-Make sure Kafka is running on:
+Kafka is expected on:
 
 ```text
 localhost:9092
 ```
 
-Create the topic if required:
+## 5. Build the application
 
 ```bash
-docker exec -it kafka \
-/opt/kafka/bin/kafka-topics.sh \
---create \
---topic url-click-events \
---bootstrap-server localhost:9092 \
---partitions 3 \
---replication-factor 1
+mvn clean install
 ```
 
-If the topic already exists, Kafka will report that it already exists.
-
----
-
-## 4. Run the Spring Boot application
-
-Using Maven:
+## 6. Run the application
 
 ```bash
-mvn clean spring-boot:run
+mvn spring-boot:run
 ```
 
-Or:
-
-```bash
-./mvnw clean spring-boot:run
-```
-
-Application:
+The application starts on:
 
 ```text
 http://localhost:9000
@@ -952,713 +817,129 @@ http://localhost:9000
 
 ---
 
-# Testing the API
+# API Documentation
 
-## Shorten a URL
+Swagger UI:
 
-```bash
-curl -X POST \
-  http://localhost:9000/api/urls/shorten \
-  -H "Content-Type: application/json" \
-  -d '{"originalUrl":"https://www.google.com"}'
+```text
+http://localhost:9000/swagger-ui.html
 ```
 
-Example response:
+OpenAPI specification:
 
-```json
-{
-  "id": 1,
-  "originalUrl": "https://www.google.com",
-  "shortCode": "abc12345"
-}
+```text
+http://localhost:9000/v3/api-docs
 ```
 
----
-
-## Expand the URL
-
-```bash
-curl \
-  http://localhost:9000/api/urls/abc12345
-```
-
----
-
-## Retrieve analytics
-
-```bash
-curl \
-  http://localhost:9000/api/urls/abc12345/stats
-```
-
----
-
-## Retrieve all URLs
-
-```bash
-curl \
-  http://localhost:9000/api/urls
-```
-
----
-
-# Kafka Verification
-
-Start a Kafka consumer:
-
-```bash
-docker exec -it kafka \
-/opt/kafka/bin/kafka-console-consumer.sh \
---bootstrap-server localhost:9092 \
---topic url-click-events \
---from-beginning
-```
-
-After an analytics-enabled URL expansion, an event should appear:
-
-```json
-{
-  "eventId": "7c5f...",
-  "shortCode": "abc12345",
-  "referrer": "https://google.com",
-  "userAgent": "Mozilla/5.0",
-  "clientIp": "127.0.0.1",
-  "eventTime": "2026-08-28T10:30:00"
-}
-```
+Swagger/OpenAPI is configured through the Springdoc dependency and the application's Springdoc properties.
 
 ---
 
 # Testing
 
-Run all tests:
+The project includes Spring Boot testing dependencies together with JPA and Web MVC test support.
+
+Testing dependencies are defined in `pom.xml`.
+
+Run the test suite with:
 
 ```bash
 mvn test
 ```
 
-or:
-
-```bash
-./mvnw test
-```
-
-Run a specific test:
-
-```bash
-mvn test -Dtest=UrlServiceImplTest
-```
-
 ---
 
-# Unit Testing Strategy
+# Design Principles
 
-The application follows a layered unit-testing approach.
+The application separates responsibilities across multiple layers.
 
-## Controller Tests
+### Controller Layer
 
-Test:
+Responsible for:
 
-* HTTP status codes
-* JSON responses
-* service delegation
-* exception handling
-* empty responses
-* request context interaction
+* HTTP request handling
+* HTTP response creation
+* Request/response documentation
+* Delegating business operations to services
 
-## Service Tests
+### Service Layer
 
-Test:
+Responsible for:
 
-* URL validation
-* short-code generation
-* repository interactions
-* cache hit
-* cache miss
-* database fallback
-* URL-not-found behavior
-* analytics creation
-* analytics updates
+* URL business logic
+* Analytics business logic
+* Coordinating persistence and caching
 
-## Mapper Tests
+### Repository Layer
 
-Test:
+Responsible for:
 
-* DTO → Entity
-* Entity → DTO
-* null handling
-* field-by-field mapping
+* Database access through Spring Data JPA
 
-## Redis Cache Tests
+### Cache Layer
 
-Test:
+Responsible for:
 
-* cache hit
-* cache miss
-* put
-* invalidate
-* exists
-* Redis exceptions
+* Redis operations
+* URL cache management
 
-## Request Context Tests
+### Kafka Layer
 
-Test:
+Responsible for:
 
-* Referer
+* Publishing analytics events
+* Consuming analytics events
+
+### Request Context Layer
+
+Responsible for retrieving HTTP request information such as:
+
+* Client IP
+* Referrer
 * User-Agent
-* X-Forwarded-For
-* Remote address fallback
 
-## Utility Tests
-
-Test:
-
-* 8-character code generation
-* deterministic generation
-* invalid input
-* Base62 generation
-* valid character set
-
-## Kafka Tests
-
-Test:
-
-* event creation
-* topic/key/value passed to Kafka producer
-* consumer delegation
-* analytics service invocation
-
----
-
-# SOLID Principles
-
-## Single Responsibility Principle
-
-Responsibilities are separated:
-
-```text
-Controller
-    → HTTP handling
-
-Service
-    → Business logic
-
-Repository
-    → Persistence
-
-RedisCacheService
-    → Cache management
-
-AnalyticsEventProducer
-    → Kafka publishing
-
-AnalyticsEventConsumer
-    → Kafka consumption
-
-ShortCodeGenerator
-    → Short-code generation
-
-HttpRequestContext
-    → HTTP request metadata
-```
-
----
-
-## Open/Closed Principle
-
-The cache is represented through the `CacheService` abstraction.
-
-```text
-CacheService
-    │
-    └── RedisCacheService
-```
-
-Another cache implementation can be introduced without changing `UrlServiceImpl`.
-
----
-
-## Liskov Substitution Principle
-
-Service and cache implementations are accessed through interfaces, allowing alternative implementations without changing consumers.
-
----
-
-## Interface Segregation Principle
-
-The `RequestContext` interface exposes only the request information required by the application:
-
-```text
-getClientIp()
-getReferer()
-getUserAgent()
-```
-
----
-
-## Dependency Inversion Principle
-
-The application uses constructor injection and service/repository interfaces.
-
-Example:
-
-```text
-UrlController
-      │
-      ▼
-UrlService
-      │
-      ▼
-UrlServiceImpl
-```
-
-Dependencies are supplied by Spring rather than created directly inside business classes.
-
----
-
-# Transaction Management
-
-The service layer uses Spring transactions.
-
-URL persistence:
-
-```java
-@Transactional
-```
-
-Read-only operations:
-
-```java
-@Transactional(readOnly = true)
-```
-
-Analytics persistence:
-
-```java
-@Transactional
-```
-
-This provides transaction boundaries around database operations.
-
----
-
-# Caching Strategy
-
-The application uses a Cache-Aside strategy:
-
-```text
-              Request
-                 │
-                 ▼
-              Redis
-             /     \
-          HIT       MISS
-           │          │
-           │          ▼
-           │       PostgreSQL
-           │          │
-           │          ▼
-           │        Redis
-           │          │
-           └────┬─────┘
-                ▼
-          Return URL
-```
-
-Benefits:
-
-* Lower database load
-* Faster repeated lookups
-* Redis can scale independently
-* Cache failures can fall back to PostgreSQL
-
----
-
-# Kafka Design
-
-Kafka introduces an asynchronous boundary between click capture and analytics persistence.
-
-```text
-HTTP Request
-     │
-     ▼
-Capture metadata
-     │
-     ▼
-Kafka Producer
-     │
-     ▼
-Kafka Topic
-     │
-     ▼
-Kafka Consumer
-     │
-     ▼
-Analytics Service
-     │
-     ▼
-PostgreSQL
-```
-
-Benefits:
-
-* Decouples analytics processing
-* Allows consumer scaling
-* Absorbs traffic spikes
-* Keeps analytics processing independent from the REST layer
-* Enables future analytics consumers
-
----
-
-# Production Considerations
-
-The current implementation is a strong demonstration of the core architecture, but several areas should be enhanced before production deployment.
-
-## Short-code collision handling
-
-The current generator uses:
-
-```java
-String.hashCode()
-```
-
-and converts the result to hexadecimal.
-
-Java hash codes are not globally unique.
-
-Production alternatives include:
-
-* Database sequence + Base62
-* Collision detection and retry
-* Random cryptographically strong identifiers
-* Snowflake-style IDs + Base62
-
----
-
-## Kafka Idempotency
-
-Kafka consumers can process a message more than once.
-
-The `AnalyticsEvent` contains an `eventId`, which can be used as an idempotency key.
-
-Recommended production design:
-
-```text
-Kafka Event
-     │
-     ▼
-Check eventId
-     │
- ┌───┴────┐
- │        │
-Exists   New
- │        │
-Ignore   Process
-          │
-          ▼
-       Persist
-```
-
-A unique constraint on `event_id` should be used to prevent duplicate analytics processing.
-
----
-
-## Kafka Retry and Dead Letter Topic
-
-Production deployment should configure:
-
-* Consumer retries
-* Exponential backoff
-* Dead Letter Topic
-* Poison-message handling
-* Monitoring and alerting
-
-Example:
-
-```text
-url-click-events
-       │
-       ▼
-    Consumer
-       │
-       ├── Success
-       │
-       └── Failure
-             │
-             ▼
-        Retry / Backoff
-             │
-             ▼
-       Dead Letter Topic
-```
-
----
-
-## Kafka Availability
-
-The REST API should define an explicit policy for Kafka failures.
-
-Possible policies:
-
-### Availability-first
-
-If analytics publishing fails:
-
-```text
-Log failure
-Return URL response
-```
-
-### Durability-first
-
-If analytics is mandatory:
-
-```text
-Kafka unavailable
-      ↓
-Retry
-      ↓
-Return failure if publishing cannot be guaranteed
-```
-
-For a URL-shortening system, availability-first is generally preferable because analytics should not prevent URL expansion.
+The controllers use dependency injection and delegate business operations to dedicated service components.
 
 ---
 
 # Known Limitations
 
-The following limitations are intentionally documented so the implementation and README remain aligned.
+## Short Code Collision
 
-### 1. Kafka integration is currently partial
+The current hash-based short-code implementation is not collision-proof.
 
-`AnalyticsController` publishes analytics events through `AnalyticsEventProducer`, while the current `UrlController.expandUrl()` still calls `AnalyticsService.saveAnalytics()` directly.
+A collision-handling strategy would be required if the same generated short code occurs for different URLs.
 
-Therefore, the complete production flow should eventually standardize on:
+## Kafka Replication
 
-```text
-URL expansion
-      ↓
-Kafka Producer
-      ↓
-Kafka
-      ↓
-Kafka Consumer
-      ↓
-AnalyticsService
-```
-
-rather than maintaining two analytics paths.
-
-### 2. Kafka dependency/configuration must remain aligned
-
-The repository's Maven configuration currently declares Spring Boot 4.1.1 and Java 17, but the compiler plugin explicitly contains Java 11 source/target settings. These should be aligned.
-
-Recommended:
-
-```xml
-<source>17</source>
-<target>17</target>
-```
-
-or use the configured Maven release property consistently.
-
-### 3. Redis does not currently define a TTL
-
-The current Redis implementation stores URL mappings without an explicit expiration time.
-
-Production systems should consider:
+The configured Kafka topic currently uses:
 
 ```text
-TTL = configurable
+replicas = 1
 ```
 
-to prevent unbounded cache growth.
+Therefore, the repository's current configuration does not provide Kafka topic replication beyond a single replica.
 
-### 4. Hash-based short codes can collide
+## Database Schema Management
 
-The current implementation explicitly uses `String.hashCode()`.
+The application currently uses:
 
-Collision detection should be added before production deployment.
+```properties
+spring.jpa.hibernate.ddl-auto=update
+```
 
-### 5. Kafka event idempotency is not yet enforced
-
-Although `AnalyticsEvent` contains an `eventId`, the current consumer delegates directly to `saveAnalytics()` without checking whether that event has already been processed.
+for Hibernate schema management.
 
 ---
 
-# Future Improvements
+# Repository
 
-Recommended enhancements:
-
-* [ ] Complete Kafka integration for the primary URL expansion endpoint
-* [ ] Add Kafka retry policy
-* [ ] Add Dead Letter Topic
-* [ ] Add analytics event idempotency
-* [ ] Add Redis TTL
-* [ ] Replace hash-based short-code generation
-* [ ] Add collision detection
-* [ ] Add URL expiration
-* [ ] Add rate limiting
-* [ ] Add authentication/authorization
-* [ ] Add OpenAPI/Swagger documentation
-* [ ] Add integration tests with Testcontainers
-* [ ] Add Kafka integration tests
-* [ ] Add PostgreSQL integration tests
-* [ ] Add Redis integration tests
-* [ ] Add Micrometer metrics
-* [ ] Add health checks for PostgreSQL, Redis and Kafka
-* [ ] Add distributed tracing
-* [ ] Add CI/CD pipeline
-* [ ] Externalize credentials using environment variables/secrets
-* [ ] Add structured JSON logging
-* [ ] Add production Docker Compose/Kubernetes configuration
-
----
-
-# Performance Considerations
-
-The architecture is designed to reduce database pressure for frequently accessed URLs.
-
-### Without Redis
-
-```text
-Request
-   ↓
-PostgreSQL
-   ↓
-Response
-```
-
-### With Redis
-
-```text
-Request
-   ↓
-Redis
-   ↓
-Response
-```
-
-Only cache misses require a database lookup.
-
-Kafka also allows analytics processing to be decoupled from the request-processing path once the primary expansion endpoint is fully migrated to the Kafka flow.
-
----
-
-# Security Considerations
-
-For production:
-
-* Use HTTPS
-* Validate and normalize URLs
-* Protect against malicious/open redirects
-* Apply request rate limiting
-* Sanitize logging data
-* Do not log sensitive headers
-* Externalize database credentials
-* Externalize Kafka credentials
-* Use Kafka authentication and TLS where required
-* Restrict Redis network access
-* Restrict PostgreSQL network access
-* Apply least-privilege database users
-
----
-
-# Example End-to-End Flow
-
-```text
-1. Client
-      │
-      │ POST /api/urls/shorten
-      ▼
-2. UrlController
-      │
-      ▼
-3. UrlService
-      │
-      ├── Generate short code
-      ├── Save PostgreSQL
-      └── Cache Redis
-      │
-      ▼
-4. Return short URL
-```
-
-Then:
-
-```text
-5. Client
-      │
-      │ GET /api/urls/abc12345
-      ▼
-6. UrlService
-      │
-      ▼
-7. Redis
-      │
-      ├── HIT → Return URL
-      │
-      └── MISS
-             │
-             ▼
-         PostgreSQL
-             │
-             ▼
-           Redis
-             │
-             ▼
-        Return URL
-```
-
-Analytics-enabled flow:
-
-```text
-8. Capture request metadata
-          │
-          ▼
-9. AnalyticsEventProducer
-          │
-          ▼
-10. Kafka: url-click-events
-          │
-          ▼
-11. AnalyticsEventConsumer
-          │
-          ▼
-12. AnalyticsService
-          │
-          ▼
-13. PostgreSQL
-```
-
----
-
-# Summary
-
-This project demonstrates a layered Spring Boot URL Shortener with:
-
-```text
-Spring Boot
-     │
-     ├── REST APIs
-     │
-     ├── Service Layer
-     │
-     ├── PostgreSQL
-     │
-     ├── Redis Cache
-     │
-     ├── Apache Kafka
-     │
-     ├── Analytics
-     │
-     ├── Request Context
-     │
-     └── Unit Tests
-```
-
-The architecture separates synchronous URL operations from analytics processing and provides a foundation for horizontal scaling and further production hardening.
-
-The `integrate-kafka` branch is available here:
+GitHub:
 
 https://github.com/syamdoddi405/url-shortener
+
+---
+
+## License
+
+No license information is currently documented in this README.
